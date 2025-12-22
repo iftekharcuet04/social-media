@@ -20,4 +20,4 @@ RUN npm run build
 # RUN npm install --omit=dev
 
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "dev"]

@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { SocialModule } from "./modules/social/social.module";
+import { SocialModule } from "./modules/connection/social.module";
 
 @Module({
   imports: [SocialModule],

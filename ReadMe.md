@@ -60,7 +60,7 @@ npm run start:dev
 ```
 
 
-# Notes
+## Notes
 
 * Instagram and LinkedIn integration will be added later.
 

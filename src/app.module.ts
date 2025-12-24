@@ -1,7 +1,13 @@
 import { Module } from "@nestjs/common";
-import { SocialModule } from "./modules/social/social.module";
+import { PrismaModule } from "nestjs-prisma";
+import { PrismaOverrideModule } from "./prisma/prisma.module";
 
 @Module({
-  imports: [SocialModule],
+  imports: [
+    PrismaModule.forRoot({
+      isGlobal: true,
+    }),
+    PrismaOverrideModule
+  ],
 })
 export class AppModule {}

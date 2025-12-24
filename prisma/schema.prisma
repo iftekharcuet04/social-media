@@ -7,29 +7,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model SocialAccount {
-  id             String       @id @default(cuid())
-  provider       String
-  providerUserId String
-  email          String? 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  pages SocialPage[]
-
-  @@unique([provider, providerUserId])
+enum ConnectionPlatform {
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
 }
 
-model SocialPage {
-  id          String        @id @default(cuid())
-  socialAccountId String
-  pageId      String
-  name        String
-  accessToken String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+enum ConnectionType {
+  PROFILE
+  PAGE
+  BUSINESS
+}
 
-  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id])
+enum ConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  EXPIRED
+  REVOKED
+}
 
-  @@unique([socialAccountId, pageId])
+model Connection {
+  id BigInt @id @default(autoincrement())
+
+  uid String @unique @default(uuid())
+
+  original_id String // Provider identity (page_id, ig_id, linkedin_id)
+
+  platform ConnectionPlatform
+  type     ConnectionType
+  status   ConnectionStatus   @default(CONNECTED)
+
+  name  String?
+  email String?
+
+  access_token     String
+  refresh_token    String?
+  token_expires_at DateTime?
+
+  metadata Json?
+
+  is_active Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([platform, original_id])
+  @@index([status])
 }

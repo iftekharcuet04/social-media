@@ -1,4 +1,0 @@
-export const SOCIAL_ACCOUNT_REPOSITORY = Symbol(
-    "SOCIAL_ACCOUNT_REPOSITORY"
-  );
-  

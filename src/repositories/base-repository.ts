@@ -146,6 +146,25 @@ export abstract class BaseRepository<
     return this.model(tx).updateMany({ where, data });
   }
 
+  async upsert(params: {
+    where: WhereUniqueInput;
+    create: CreateInput;
+    update: UpdateInput;
+    select?: Select;
+    include?: Include;
+    tx?: Tx;
+  }): Promise<T> {
+    const { where, create, update, select, include, tx } = params;
+    return this.model(tx).upsert({
+      where,
+      create,
+      update,
+      select,
+      include,
+    });
+  }
+  
+
   async remove(params: {
     where: WhereUniqueInput;
     tx?: Tx;

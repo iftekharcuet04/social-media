@@ -5,13 +5,14 @@ import {
   INSTAGRAM_API_BASE_URL,
   INSTAGRAM_AUTH_BASE_URL,
   INSTAGRAM_GRAPH_BASE_URL,
+  INSTAGRAM_VERSION,
 } from "../../common/api.constant";
 
 @Injectable()
 export class InstagramGraphApi {
   constructor(private readonly httpService: HttpService) {}
 
-  static buildLoginurl(params: {
+  buildLoginurl(params: {
     clientId: string;
     redirectUri: string;
     scopes: string;
@@ -69,11 +70,16 @@ export class InstagramGraphApi {
   }
 
   async getUserInfo(accessToken: string) {
-    const response = await this.httpService
-      .get(`${INSTAGRAM_GRAPH_BASE_URL}/me?access_token=${accessToken}`)
-      .toPromise();
+    const userInfoUrl = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/me?fields=user_id,name,username&access_token=${accessToken}`;
+    console.log("userInfoUrl;: ", userInfoUrl);
 
-    return response?.data || {};
+    const userDataResponse = await this.httpService
+      .get(userInfoUrl)
+      .toPromise();
+    console.log("userDataResponse: ", userDataResponse?.data);
+
+    const { name, username, email, user_id } = userDataResponse?.data || {};
+    return { name, email: email || username, username, user_id };
   }
 
   // social post api

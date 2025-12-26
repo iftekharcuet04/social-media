@@ -8,4 +8,3 @@ export const INSTAGRAM_AUTH_BASE_URL = "https://www.instagram.com/oauth";
 export const INSTAGRAM_API_BASE_URL = "https://api.instagram.com";
 export const INSTAGRAM_GRAPH_BASE_URL = "https://graph.instagram.com";
 export const INSTAGRAM_VERSION = "v24.0";
-// Twitter

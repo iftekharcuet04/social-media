@@ -9,7 +9,7 @@ import {
 } from "../../common/api.constant";
 
 @Injectable()
-export class InstagramGraphApi {
+export class InstagramGraphApiClient {
   constructor(private readonly httpService: HttpService) {}
 
   buildLoginurl(params: {
@@ -84,13 +84,12 @@ export class InstagramGraphApi {
 
   // social post api
 
-  async createMediaContainer(params: {
+  async createImageMediaContainer(params: {
     apiUrl: string;
     accessToken: string;
     caption: string;
     mediaType?: string;
-    imageUrl?: string;
-    videoUrl?: string;
+    url?: string;
   }) {
     return axios.post(
       `${params.apiUrl}/media`,
@@ -98,8 +97,28 @@ export class InstagramGraphApi {
       {
         params: {
           caption: params.caption,
-          image_url: params.imageUrl,
-          video_url: params.videoUrl,
+          image_url: params.url,
+          media_type: params.mediaType, // reels, stories
+          access_token: params.accessToken,
+        },
+      }
+    );
+  }
+
+  async createVideoMediaContainer(params: {
+    apiUrl: string;
+    accessToken: string;
+    caption: string;
+    mediaType?: string;
+    url?: string;
+  }) {
+    return axios.post(
+      `${params.apiUrl}/media`,
+      {},
+      {
+        params: {
+          caption: params.caption,
+          video_url: params.url,
           media_type: params.mediaType, // reels, stories
           access_token: params.accessToken,
         },

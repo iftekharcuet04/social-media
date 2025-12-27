@@ -100,7 +100,7 @@ export class FacebookGraphClient {
 
   // for post service
 
-  static async uploadImage(
+   async uploadImage(
     pageId: string,
     accessToken: string,
     message: string,
@@ -129,7 +129,7 @@ export class FacebookGraphClient {
     }
   }
 
-  static async uploadText(
+   async uploadText(
     pageId: string,
     accessToken: string,
     message: string
@@ -149,7 +149,7 @@ export class FacebookGraphClient {
     }
   }
 
-  static async uploadVideo(
+   async uploadVideo(
     pageId: string,
     accessToken: string,
     message: string,

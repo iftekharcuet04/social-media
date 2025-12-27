@@ -14,8 +14,8 @@ export class FacebookPostService {
   ) {}
 
   async createPost(
+    connectionId: string,
     type: "TEXT" | "IMAGE" | "VIDEO",
-    accessToken: string,
     message: string,
     url?: string
   ): Promise<{ id: string; error: null | Error }> {
@@ -23,32 +23,33 @@ export class FacebookPostService {
       const connection = await this.connectionRepository.findFirst({
         where: {
           platform: "FACEBOOK",
+          original_id: connectionId,
         },
         select: {
           original_id: true,
+          access_token: true,
         },
       });
-      const connectionId = connection.original_id;
       if (type === "IMAGE") {
         const response = await this.facebookGraphClient.uploadImage(
           connectionId,
-          accessToken,
+          connection.access_token,
           message,
-          url as string
+          url
         );
         return { id: response.id, error: null };
       } else if (type === "VIDEO") {
         const response = await this.facebookGraphClient.uploadVideo(
           connectionId,
-          accessToken,
+          connection.access_token,
           message,
-          url as string
+          url
         );
         return { id: response.id, error: null };
       } else {
         const response = await this.facebookGraphClient.uploadText(
           connectionId,
-          accessToken,
+          connection.access_token,
           message
         );
         return { id: response.id, error: null };

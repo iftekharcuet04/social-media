@@ -24,8 +24,8 @@ export class InstagramPostService {
     return mediaType;
   }
   async createPost(params: {
+    connectionId: string;
     type: "IMAGE" | "VIDEO";
-    accessToken: string;
     message: string;
     url?: string;
     mediaType?: string;
@@ -34,9 +34,11 @@ export class InstagramPostService {
       const connection = await this.connectionRepository.findFirst({
         where: {
           platform: "INSTAGRAM",
+          original_id: params.connectionId,
         },
         select: {
           original_id: true,
+          access_token: true,
         },
       });
 
@@ -50,6 +52,7 @@ export class InstagramPostService {
         const response =
           await this.instagramGraphClient.createImageMediaContainer({
             ...params,
+            accessToken: connection.access_token,
             apiUrl,
             caption: params.message,
           });
@@ -59,13 +62,13 @@ export class InstagramPostService {
           const publishResponse = await this.retryPublishRequest(
             apiUrl,
             id,
-            params.accessToken
+            connection.access_token
           );
 
           const mediaInfo = await this.instagramGraphClient.getMediaDetails(
             apiUrl,
             publishResponse?.id,
-            params.accessToken
+            connection.access_token
           );
           return { id: mediaInfo, error: null };
         }
@@ -75,6 +78,7 @@ export class InstagramPostService {
             ...params,
             mediaType: this.determineMediaType(params),
             apiUrl,
+            accessToken: connection.access_token,
             caption: params.message,
           });
         const id = response?.data?.id;
@@ -82,12 +86,12 @@ export class InstagramPostService {
           const publishResponse = await this.retryPublishRequest(
             apiUrl,
             id,
-            params.accessToken
+            connection.access_token
           );
           const mediaInfo = await this.instagramGraphClient.getMediaDetails(
             apiUrl,
             publishResponse?.id,
-            params.accessToken
+            connection.access_token
           );
           return { id: mediaInfo, error: null };
         }

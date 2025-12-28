@@ -1,25 +1,26 @@
 import { Injectable } from "@nestjs/common";
 import { ConnectionRepository } from "../../repositories/connection.repository";
+import {
+  FacebookPostParams,
+  SocialPostStrategy,
+} from "../interfaces/media-factory";
 import { FacebookGraphClient } from "./facebook-graph.client";
 
 @Injectable()
-export class FacebookPostService {
-  private mediaType: string;
-  private url?: string;
-  private caption?: string;
-  private accessToken?: string;
+export class FacebookPostService
+  implements SocialPostStrategy<FacebookPostParams>
+{
+  platform = "FACEBOOK" as const;
   constructor(
     private readonly facebookGraphClient: FacebookGraphClient,
     private readonly connectionRepository: ConnectionRepository
   ) {}
 
   async createPost(
-    connectionId: string,
-    type: "TEXT" | "IMAGE" | "VIDEO",
-    message: string,
-    url?: string
+    params: FacebookPostParams
   ): Promise<{ id: string; error: null | Error }> {
     try {
+      const { connectionId, type, message, url } = params;
       const connection = await this.connectionRepository.findFirst({
         where: {
           platform: "FACEBOOK",

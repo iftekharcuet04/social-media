@@ -5,10 +5,17 @@ import {
 } from "../../common/api.constant";
 import { delay } from "../../common/util";
 import { ConnectionRepository } from "../../repositories/connection.repository";
+import {
+  InstagramPostParams,
+  SocialPostStrategy,
+} from "../interfaces/media-factory";
 import { InstagramGraphApiClient } from "./instagram-graph.api";
 
 @Injectable()
-export class InstagramPostService {
+export class InstagramPostService
+  implements SocialPostStrategy<InstagramPostParams>
+{
+  platform = "INSTAGRAM" as const;
   constructor(
     private readonly instagramGraphClient: InstagramGraphApiClient,
     private readonly connectionRepository: ConnectionRepository
@@ -23,13 +30,9 @@ export class InstagramPostService {
     if (type === "VIDEO") return mediaType ?? "reels";
     return mediaType;
   }
-  async createPost(params: {
-    connectionId: string;
-    type: "IMAGE" | "VIDEO";
-    message: string;
-    url?: string;
-    mediaType?: string;
-  }): Promise<{ id: string | null; error: Error | null }> {
+  async createPost(
+    params: InstagramPostParams
+  ): Promise<{ id: string | null; error: Error | null }> {
     try {
       const connection = await this.connectionRepository.findFirst({
         where: {

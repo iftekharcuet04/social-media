@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { ConnectionRepository } from "../../repositories/connection.repository";
-import { InstagramGraphApi } from "./instagram-graph.api";
+import { InstagramGraphApiClient } from "./instagram-graph.api";
 
 @Injectable()
 export class InstagramAuthService {
   constructor(
-    private readonly instagramGraphClient: InstagramGraphApi,
+    private readonly instagramGraphClient: InstagramGraphApiClient,
     private readonly connectionRepo: ConnectionRepository
   ) {}
 

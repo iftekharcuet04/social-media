@@ -18,11 +18,11 @@ export abstract class BaseRepository<
 > {
   constructor(
     protected readonly prisma: PrismaOverrideService,
-    private readonly modelAccessor: (p: PrismaOverrideService | Tx) => any
+    private readonly modelAccessor: (p: any) => any
   ) {}
 
   protected model(tx?: Tx) {
-    return this.modelAccessor(tx ?? this.prisma);
+    return this.modelAccessor(tx ?? this.prisma.client);
   }
 
   async create(params: {
@@ -110,7 +110,7 @@ export abstract class BaseRepository<
     const data = hasNextPage ? items.slice(0, take) : items;
   
     const nextCursor = hasNextPage
-      ? { [cursorField]: (data[data.length - 1] as any)[cursorField] }
+      ? ({ [cursorField]: (data[data.length - 1] as any)[cursorField] } as WhereUniqueInput)
       : undefined;
   
     return {

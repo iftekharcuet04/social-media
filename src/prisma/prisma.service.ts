@@ -2,35 +2,41 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
 @Injectable()
-export class PrismaOverrideService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
   private static instance: PrismaOverrideService;
   private queue: (() => void)[] = [];
   private maxConcurrent = 16;
   private activeCount = 0;
+  
+  // The actual Prisma Client that will be used for all operations
+  public readonly client;
 
   constructor() {
-    super();
     if (PrismaOverrideService.instance) {
       return PrismaOverrideService.instance;
     }
     PrismaOverrideService.instance = this;
 
-    // Middleware for throttling
-    this.$use(async (params, next) => {
-      return this.enqueue(() => next(params));
+    const baseClient = new PrismaClient();
+    
+    // Prisma 6 Throttling Extension
+    this.client = baseClient.$extends({
+      query: {
+        $allOperations: async ({ args, query }) => {
+          return this.enqueue(() => query(args));
+        }
+      }
     });
   }
 
   async onModuleInit() {
-    await this.$connect();
+    // Note: client.$connect() is available on the extended client
+    await (this.client as any).$connect();
     console.log("PrismaOverrideService connected");
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
+    await (this.client as any).$disconnect();
   }
 
   private enqueue(fn: () => Promise<any>): Promise<any> {
@@ -43,12 +49,10 @@ export class PrismaOverrideService
         } catch (err) {
           reject(err);
         } finally {
-          console.log("query running", this.activeCount);
-          console.log("query waiting", this.queue.length);
           this.activeCount--;
           if (this.queue.length > 0) {
             const nextFn = this.queue.shift();
-            nextFn();
+            if (nextFn) nextFn();
           }
         }
       };

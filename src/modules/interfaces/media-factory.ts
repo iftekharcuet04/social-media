@@ -1,23 +1,39 @@
-export type FacebookPostParams = {
-  platform: "FACEBOOK";
+// Shared fields all platforms need — NO media fields here
+export interface BasePostParams {
+  platform: string;
   connectionId: string;
-  type: "TEXT" | "IMAGE" | "VIDEO";
   message: string;
-  url?: string;
-};
+}
 
-export type InstagramPostParams = {
-  platform: "INSTAGRAM";
-  connectionId: string;
-  type: "IMAGE" | "VIDEO";
-  message: string;
-  url?: string;
+// Platforms that support MULTIPLE images/videos
+export interface FacebookPostParams extends BasePostParams {
+  platform: 'FACEBOOK';
+  type: 'TEXT' | 'IMAGE' | 'VIDEO';
+  urls?: string[];
+}
+
+export interface InstagramPostParams extends BasePostParams {
+  platform: 'INSTAGRAM';
+  type: 'IMAGE' | 'VIDEO';
+  urls?: string[];
   mediaType?: string;
-};
+}
 
+// Union — grows as platforms are added
 export type CreatePostParams = FacebookPostParams | InstagramPostParams;
 
-export interface SocialPostStrategy<T extends { platform: string }> {
-  platform: T["platform"];
-  createPost(params: T): Promise<{ id: string | null; error: Error | null }>;
+export interface DeletePostParams {
+  platform: string;
+  connectionId: string;
+  postId: string;
+}
+
+export type PostResult = { id: string | null; error: Error | null };
+
+// Strategy interface — no generic, each impl narrows internally
+export interface SocialPostStrategy {
+  readonly platform: string;
+  readonly supportedMediaTypes: readonly string[];
+  createPost(params: CreatePostParams): Promise<PostResult>;
+  deletePost(params: DeletePostParams): Promise<PostResult>;
 }

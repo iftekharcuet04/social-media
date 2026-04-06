@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaOverrideService } from '../prisma/prisma.service';
-import { Connection, Prisma } from '@prisma/client';
+import { Connection, ConnectionPlatform, Prisma } from '@prisma/client';
 import { BaseRepository } from './base-repository';
 
 @Injectable()
@@ -14,5 +14,15 @@ export class ConnectionRepository extends BaseRepository<
 > {
   constructor(protected readonly prisma: PrismaOverrideService) {
     super(prisma, (db) => db.connection);
+  }
+
+  async findByPlatformAndOriginalId(
+    platform: ConnectionPlatform,
+    originalId: string,
+  ): Promise<{ original_id: string; access_token: string } | null> {
+    return this.findFirst({
+      where: { platform, original_id: originalId },
+      select: { original_id: true, access_token: true },
+    });
   }
 }

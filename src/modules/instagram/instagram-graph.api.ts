@@ -150,4 +150,12 @@ export class InstagramGraphApiClient {
     const { id, permalink } = response?.data || {};
     return `${id}|${permalink}`;
   }
+
+  async deleteMedia(apiUrl: string, mediaId: string, accessToken: string) {
+    return axios.delete(`${apiUrl}/${mediaId}`, {
+      params: {
+        access_token: accessToken,
+      },
+    });
+  }
 }

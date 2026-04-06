@@ -1,11 +1,26 @@
 import { Module } from '@nestjs/common';
 import { SocialMediaPostService } from './social-media-post.service';
 import { SocialMediaController } from './social-media.controller';
+import { RepositoryModule } from '../../repositories/repository.module';
+import { FacebookModule } from '../facebook/facebook.module';
+import { InstagramModule } from '../instagram/instagram.module';
+import { FacebookPostStrategy } from '../facebook/facebook-post.strategy';
+import { InstagramPostStrategy } from '../instagram/instagram-post.strategy';
 
 @Module({
-  imports: [],
+  imports: [RepositoryModule, FacebookModule, InstagramModule],
   controllers: [SocialMediaController],
-  providers: [SocialMediaPostService],
+  providers: [
+    SocialMediaPostService,
+    {
+      provide: 'POST_STRATEGIES',
+      useFactory: (
+        facebookStrategy: FacebookPostStrategy,
+        instagramStrategy: InstagramPostStrategy,
+      ) => [facebookStrategy, instagramStrategy],
+      inject: [FacebookPostStrategy, InstagramPostStrategy],
+    },
+  ],
   exports: [],
 })
 export class SocialMediaPostModule {}

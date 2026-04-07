@@ -54,3 +54,20 @@ model Connection {
   @@unique([platform, original_id])
   @@index([status])
 }
+
+model SocialPost {
+  id BigInt @id @default(autoincrement())
+
+  uid String @unique @default(uuid())
+
+  connection_id String
+  platform      ConnectionPlatform
+
+  message String?
+  urls    String[]
+
+  status String @default("PUBLISHED") // e.g. PUBLISHED, DELETED, ARCHIVED
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

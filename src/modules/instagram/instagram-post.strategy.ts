@@ -119,22 +119,9 @@ export class InstagramPostStrategy implements SocialPostStrategy {
   }
 
   async deletePost(params: DeletePostParams): Promise<PostResult> {
-    try {
-      const connection = await this.connectionRepository.findByPlatformAndOriginalId(
-        'INSTAGRAM',
-        params.connectionId,
-      );
-
-      if (!connection) {
-        throw new Error('Connection not found');
-      }
-
-      const apiUrl = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/${connection.original_id}`;
-      await this.instagramGraphClient.deleteMedia(apiUrl, params.postId, connection.access_token);
-
-      return { id: params.postId, error: null };
-    } catch (error) {
-      return { id: null, error };
-    }
+    return {
+      id: null,
+      error: new Error('Delete capability is not supported for platform: INSTAGRAM'),
+    };
   }
 }

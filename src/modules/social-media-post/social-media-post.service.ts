@@ -5,6 +5,7 @@ import {
   PostResult,
   SocialPostStrategy,
 } from '../interfaces/media-factory';
+import { platformCapabilities } from '../../common/platform-capabilities';
 
 @Injectable()
 export class SocialMediaPostService {
@@ -32,6 +33,11 @@ export class SocialMediaPostService {
   }
 
   async deletePost(params: DeletePostParams): Promise<PostResult> {
+    const platformCap = platformCapabilities[params.platform.toLowerCase()];
+    if (platformCap && platformCap.canDelete === false) {
+      throw new Error(`Delete capability is not supported for platform: ${params.platform}`);
+    }
+
     const strategy = this.strategies.find(
       (s) => s.platform === params.platform,
     );

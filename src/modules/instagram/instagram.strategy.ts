@@ -10,12 +10,12 @@ import {
   DeletePostParams,
   InstagramPostParams,
   PostResult,
-  SocialPostStrategy,
+  PublisherStrategy,
 } from '../interfaces/media-factory';
 import { InstagramGraphApiClient } from './instagram-graph.api';
 
 @Injectable()
-export class InstagramPostStrategy implements SocialPostStrategy {
+export class InstagramStrategy implements PublisherStrategy {
   readonly platform = 'INSTAGRAM' as const;
   readonly supportedMediaTypes = ['IMAGE', 'VIDEO'] as const;
 

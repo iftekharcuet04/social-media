@@ -7,11 +7,13 @@ import { SocialMediaController } from './social-media.controller';
 import { RepositoryModule } from '../../repositories/repository.module';
 import { FacebookModule } from '../facebook/facebook.module';
 import { InstagramModule } from '../instagram/instagram.module';
-import { FacebookPostStrategy } from '../facebook/facebook-post.strategy';
-import { InstagramPostStrategy } from '../instagram/instagram-post.strategy';
+import { LinkedInModule } from '../linkedin/linkedin.module';
+import { FacebookStrategy } from '../facebook/facebook.strategy';
+import { InstagramStrategy } from '../instagram/instagram.strategy';
+import { LinkedInStrategy } from '../linkedin/linkedin.strategy';
 
 @Module({
-  imports: [RepositoryModule, FacebookModule, InstagramModule],
+  imports: [RepositoryModule, FacebookModule, InstagramModule, LinkedInModule],
   controllers: [SocialMediaController],
   providers: [
     SocialMediaPostService,
@@ -21,10 +23,11 @@ import { InstagramPostStrategy } from '../instagram/instagram-post.strategy';
     {
       provide: 'POST_STRATEGIES',
       useFactory: (
-        facebookStrategy: FacebookPostStrategy,
-        instagramStrategy: InstagramPostStrategy,
-      ) => [facebookStrategy, instagramStrategy],
-      inject: [FacebookPostStrategy, InstagramPostStrategy],
+        facebookStrategy: FacebookStrategy,
+        instagramStrategy: InstagramStrategy,
+        linkedInStrategy: LinkedInStrategy,
+      ) => [facebookStrategy, instagramStrategy, linkedInStrategy],
+      inject: [FacebookStrategy, InstagramStrategy, LinkedInStrategy],
     },
   ],
   exports: [],

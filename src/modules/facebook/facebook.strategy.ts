@@ -5,19 +5,19 @@ import {
   DeletePostParams,
   FacebookPostParams,
   PostResult,
-  SocialPostStrategy,
+  PublisherStrategy,
 } from '../interfaces/media-factory';
 import { FacebookGraphClient } from './facebook-graph.client';
 
 @Injectable()
-export class FacebookPostStrategy implements SocialPostStrategy {
+export class FacebookStrategy implements PublisherStrategy {
   readonly platform = 'FACEBOOK' as const;
   readonly supportedMediaTypes = ['TEXT', 'IMAGE', 'VIDEO'] as const;
 
   constructor(
     private readonly facebookGraphClient: FacebookGraphClient,
     private readonly connectionRepository: ConnectionRepository,
-  ) {}
+  ) { }
 
   async createPost(params: CreatePostParams): Promise<PostResult> {
     const fbParams = params as FacebookPostParams;

@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreatePostParams, DeletePostParams, PostResult, SocialPostStrategy } from '../interfaces/media-factory';
+import { CreatePostParams, DeletePostParams, PostResult, PublisherStrategy } from '../interfaces/media-factory';
 import { PlatformCapabilitiesService } from '../../common/platform-capabilities.service';
 
 @Injectable()
 export class PublisherService {
   constructor(
     @Inject('POST_STRATEGIES')
-    private readonly strategies: SocialPostStrategy[],
+    private readonly strategies: PublisherStrategy[],
     private readonly platformCapabilitiesService: PlatformCapabilitiesService,
   ) {}
 

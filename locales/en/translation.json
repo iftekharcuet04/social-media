@@ -1,0 +1,17 @@
+{
+    "NOT_EMPTY_MESSAGE": "{{fieldName}} can not be empty",
+    "TYPE_MISMATCH_ERROR": "{{fieldName}} expected to be {{expectedType}}, but got {{invalidType}}",
+    "MAX_LENGTH_ERROR": "Maximum length of {{fieldName}} is ({{maxLength}}) but got ({{length}})",
+    "MIN_LENGTH_ERROR": "Minimum length of {{fieldName}} is ({{minLength}}) but got ({{length}})",
+    "CASE_MISMATCH_ERROR": "{{fieldName}} expected to be {{expectedType}}",
+    "ENUM_VALUE_ERROR": "{{fieldName}} must be one of the following values: {{expectedValues}}",
+    "PROVIDE_REQUIRED_FIELDS": "Please provide required Field",
+    "INVALID_VALUE":"Invalid type for {{variableName}}: {{details}}",
+    "DEFAULT_INVALID_VALUE":"invalid data provided.",
+    "VALUE_MISSING":"{{fieldName}} is required (type: {{fieldType}}) is missing.",
+    "TYPE_MATCHING_ERROR":"The field {{variableName}} Expected a {{expectedType}}, but received : {{providedValue}}, got a different type.",
+    "FIELD_MATCH_INVALID_VALUE": " {{fieldName}} has an invalid value ({{fieldValue}}).",
+    "USER_FETCH_SUCCESS": "User fetched successfully",
+    "USER_FETCH_ERROR": "User Not Found"
+  }
+  

@@ -1,67 +1,108 @@
-# Social Connections Demo
+# Social Media Management System
 
-> This project is a standalone demo built to showcase backend implementation for social media connections.  
-> It is **not connected to any official project** and is created purely for demonstration purposes.
+A professional social media management backend built with NestJS and Prisma, designed to handle multi-platform connections, media publishing, and automated interactions with high performance and reliability.
 
-## Purpose
+## Core Features
 
-- Manage social connections (profile & page)  
-- Handle access tokens and refresh tokens for social media platforms  
-- Separate API request logic from business logic  
-- Demonstrate upsert and cursor-based pagination for connections  
-- Dockerized setup for easy deployment  
+- **Multi-Platform Integration**: Seamlessly connect and manage Facebook and Instagram accounts.
+- **Media Publishing**: Robust pipeline for publishing posts and managing media across different social platforms.
+- **Connection Management**: Automated handling of access tokens, refresh tokens, and account metadata.
+- **Scalable Architecture**: Implements the Repository pattern for clean data access and separation of concerns.
+
+## Technical Foundation (Boilerplate Standards)
+
+This project follows premium boilerplate standards to ensure production-grade reliability:
+
+### 1. Database & Concurrency
+- **Concurrency Limiting**: Integrated `ConcurrencyLimiterService` ensures the database is never overwhelmed by limiting active queries to 20 and total capacity to 150.
+- **Optimized Pooling**: Configured with professional-grade connection pooling (`connection_limit=20`) to prevent connection exhaustion.
+- **Slow Query Tracking**: Automatic alerts for any database operations exceeding 2000ms.
+
+### 2. Internationalization (i18n)
+- **Multi-language Support**: Full translation support for API responses using localized JSON files.
+- **Smart Detection**: Automatically detects user language preference from the `Accept-Language` header.
+
+### 3. API Reliability & Monitoring
+- **Standardized Responses**: All API responses follow a unified structure for easier frontend integration.
+- **Global Error Handling**: Centralized exception filtering that provides clear, localized error messages.
+- **Health Monitoring**: Built-in `/health` and `/health-details` endpoints for system status tracking.
 
 ## Project Structure
 
-
-```js
-
+```text
 src/
-├── common/ # Constants, utilities, interfaces
-├── connection/
-│ 
-│ ├── connection.service.ts
-│ └── connection.controller.ts
-├── facebook/
-│ ├── facebook.client.ts
-│ └── facebook.service.ts
-├── prisma/
-│ └── prisma.service.ts
-repository/
-├── connection.repository.ts
-└── base.repository.ts
-
+├── common/                     # Shared logic and cross-cutting concerns
+│   ├── api.constant.ts         # Global API constants (URLs, etc.)
+│   ├── platform-capabilities.service.ts # Platform-specific logic
+│   ├── filters/                # Global Exception Filters
+│   ├── interceptors/           # Global Response Interceptors
+│   └── services/               # Infrastructure services
+│       ├── concurrency-limiter.service.ts # DB Load management
+│       └── translation.service.ts         # i18n logic
+├── config/                     # Typed configuration (App, API)
+├── locales/                    # i18n JSON files (en, es, etc.)
+├── modules/                    # Domain-specific logic
+│   ├── facebook/               # Facebook platform integration
+│   ├── instagram/              # Instagram platform integration
+│   └── social-media-post/      # Core post orchestration logic
+├── prisma/                     # Database client & extensions
+└── repositories/               # Data access layer
+    ├── base-repository.ts      # Abstract base for CRUD
+    ├── connection.repository.ts # Account connection storage
+    └── post.repository.ts       # Social media post storage
+test/                           # Test suites
+├── app.e2e-spec.ts             # Global app flow tests
+├── architecture.e2e-spec.ts    # Filter/Limiter verification
+└── ...spec.ts                  # Unit tests
 ```
 
+## Getting Started
 
-## Features
+### Prerequisites
+- Node.js (v20+)
+- PostgreSQL
+- Docker (optional)
 
-- Facebook integration: login, get profile, get pages, post upload  
-- Connection management: create, update, remove, list with pagination  
-- Docker and Docker Compose support  
-- PostgreSQL database  
-
-## How to Run
-
+### Installation
 ```bash
-# Clone the repo
-git clone <repo-url>
-cd social-connections-demo
-
 # Install dependencies
 npm install
 
-# Start Docker services
-docker-compose up -d
+# Generate Prisma client
+npx prisma generate
 
-# Start the NestJS server
-npm run start:dev
-
+# Run migrations
+npx prisma migrate dev
 ```
 
+### Environment Setup
+Create a `.env` file with the following variables:
+```env
+DATABASE_URL="postgresql://user:pass@localhost:5432/social_db?connection_limit=20"
+PORT=3000
+DB_CONCURRENCY=20
+```
 
-## Notes
+### Running the App
+```bash
+# Development mode
+npm run dev
 
-* Instagram and LinkedIn integration will be added later.
+# Production mode
+npm run build
+npm run start
+```
 
-* This project is fully independent and intended only for demonstration purposes.
+## Testing
+The project includes a comprehensive test suite covering architecture, concurrency, and core functionality.
+```bash
+# Run unit tests
+npm run test
+
+# Run E2E verification
+npm run test:e2e
+```
+
+## Documentation
+- **API Prefix**: All routes are prefixed with `/api` by default.
+- **Locales**: Translation files are located in `./locales`.

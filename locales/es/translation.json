@@ -1,0 +1,18 @@
+{
+    "NOT_EMPTY_MESSAGE": "{{fieldName}} no puede estar vacío",
+    "TYPE_MISMATCH_ERROR": "Se esperaba que {{fieldName}} fuera {{expectedType}}, pero se obtuvo {{invalidType}}",
+    "MAX_LENGTH_ERROR": "La longitud máxima de {{fieldName}} es ({{maxLength}}) pero se obtuvo ({{length}})",
+    "MIN_LENGTH_ERROR": "La longitud mínima de {{fieldName}} es ({{minLength}}) pero se obtuvo ({{length}})",
+    "CASE_MISMATCH_ERROR": "Se esperaba que {{fieldName}} fuera {{expectedType}}",
+    "ENUM_VALUE_ERROR": "{{fieldName}} debe ser uno de los siguientes valores: {{expectedValues}}",
+    "PROVIDE_REQUIRED_FIELDS": "Por favor, proporciona el campo requerido",
+   
+    "INVALID_VALUE":"Tipo no válido para {{variableName}}: {{details}}",
+    "DEFAULT_INVALID_VALUE":"datos no válidos proporcionados.",
+    "VALUE_MISSING":"{{fieldName}} es requerido (tipo: {{fieldType}}) falta.",
+    "TYPE_MATCHING_ERROR":"El campo {{variableName}} esperaba un {{expectedType}}, pero se recibió : {{providedValue}}, se obtuvo un tipo diferente.",
+    "FIELD_MATCH_INVALID_VALUE": " {{fieldName}} tiene un valor no válido ({{fieldValue}}).",
+    "USER_FETCH_SUCCESS": "Usuario obtenido con éxito",
+    "USER_FETCH_ERROR": "Usuario no encontrado"
+}
+

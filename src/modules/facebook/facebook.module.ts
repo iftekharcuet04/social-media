@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
-import { FacebookGraphClient } from './facebook-graph.client';
-import { FacebookAuthService } from './facebook.auth.service';
-import { FacebookStrategy } from './facebook.strategy';
-import { HttpModule, HttpService } from '@nestjs/axios';
-import { ConnectionRepository } from '../../repositories/connection.repository';
+import { Module } from "@nestjs/common";
+import { FacebookGraphClient } from "./facebook-graph.client";
+import { FacebookAuthService } from "./facebook.auth.service";
+
+import { HttpModule } from "@nestjs/axios";
+import { RepositoryModule } from "../../repositories/repository.module";
+import { FacebookStrategy } from "./facebook.strategy";
 
 @Module({
-  providers: [FacebookGraphClient, FacebookAuthService, FacebookStrategy, ConnectionRepository],
-  imports: [HttpModule],
-  exports: [FacebookAuthService, FacebookGraphClient, FacebookStrategy, HttpModule, ConnectionRepository],
+  imports: [HttpModule, RepositoryModule],
+  providers: [FacebookGraphClient, FacebookAuthService, FacebookStrategy],
+  exports: [FacebookAuthService, FacebookGraphClient, FacebookStrategy],
 })
-export class FacebookModule { }
+export class FacebookModule {}

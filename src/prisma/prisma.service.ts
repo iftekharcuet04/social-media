@@ -1,67 +1,66 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { ConcurrencyLimiterService } from "../common/services/concurrency-limiter.service";
 
 @Injectable()
 export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
-  private static instance: PrismaOverrideService;
-  private queue: (() => void)[] = [];
-  private maxConcurrent = 16;
-  private activeCount = 0;
-  
-  // The actual Prisma Client that will be used for all operations
+  private readonly logger = new Logger(PrismaOverrideService.name);
+  private readonly limiter = new ConcurrencyLimiterService();
+  private readonly QUERY_TIMEOUT_MS = 2000;
   public readonly client;
 
   constructor() {
-    if (PrismaOverrideService.instance) {
-      return PrismaOverrideService.instance;
-    }
-    PrismaOverrideService.instance = this;
-
     const baseClient = new PrismaClient();
     
-    // Prisma 6 Throttling Extension
     this.client = baseClient.$extends({
       query: {
-        $allOperations: async ({ args, query }) => {
-          return this.enqueue(() => query(args));
+        $allOperations: async ({ model, operation, args, query }) => {
+          const startTime = Date.now();
+          
+          const result = await this.limiter.run(async () => {
+            return await query(args);
+          });
+          
+          const duration = Date.now() - startTime;
+          if (duration > this.QUERY_TIMEOUT_MS) {
+            this.logger.warn(
+              `CRITICAL: Query ${model}.${operation} took ${duration}ms!`
+            );
+          }
+
+          // Handle binary UID to hex conversion if present (matching boilerplate middleware)
+          return this.handleResult(result);
         }
       }
     });
+  }
+
+  private handleResult(result: any) {
+    if (Array.isArray(result)) {
+      return result.map((item) => this.transformItem(item));
+    }
+    return this.transformItem(result);
+  }
+
+  private transformItem(item: any) {
+    if (item && item.uid && Buffer.isBuffer(item.uid)) {
+      item.uid = item.uid.toString("hex");
+    }
+    return item;
   }
 
   async onModuleInit() {
-    // Note: client.$connect() is available on the extended client
+    if (!this.client || process.env.NODE_ENV === 'test') {
+      this.logger.log("Skipping DB connection in test environment");
+      return;
+    }
     await (this.client as any).$connect();
-    console.log("PrismaOverrideService connected");
+    this.logger.log("PrismaOverrideService connected");
   }
 
   async onModuleDestroy() {
-    await (this.client as any).$disconnect();
-  }
-
-  private enqueue(fn: () => Promise<any>): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const run = async () => {
-        this.activeCount++;
-        try {
-          const result = await fn();
-          resolve(result);
-        } catch (err) {
-          reject(err);
-        } finally {
-          this.activeCount--;
-          if (this.queue.length > 0) {
-            const nextFn = this.queue.shift();
-            if (nextFn) nextFn();
-          }
-        }
-      };
-
-      if (this.activeCount < this.maxConcurrent) {
-        run();
-      } else {
-        this.queue.push(run);
-      }
-    });
+    if (this.client) {
+      await (this.client as any).$disconnect();
+    }
   }
 }

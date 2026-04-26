@@ -19,8 +19,14 @@ export interface InstagramPostParams extends BasePostParams {
   mediaType?: string;
 }
 
+export interface LinkedInPostParams extends BasePostParams {
+  platform: 'LINKEDIN';
+  type: 'TEXT' | 'IMAGE' | 'VIDEO';
+  urls?: string[];
+}
+
 // Union — grows as platforms are added
-export type CreatePostParams = FacebookPostParams | InstagramPostParams;
+export type CreatePostParams = FacebookPostParams | InstagramPostParams | LinkedInPostParams;
 
 export interface DeletePostParams {
   platform: string;
@@ -31,7 +37,7 @@ export interface DeletePostParams {
 export type PostResult = { id: string | null; error: Error | null };
 
 // Strategy interface — no generic, each impl narrows internally
-export interface SocialPostStrategy {
+export interface PublisherStrategy {
   readonly platform: string;
   readonly supportedMediaTypes: readonly string[];
   createPost(params: CreatePostParams): Promise<PostResult>;

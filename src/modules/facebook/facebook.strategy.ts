@@ -76,7 +76,7 @@ export class FacebookStrategy implements PublisherStrategy {
         { retries: 3, delayMs: 3000, label: 'Facebook Text Upload' },
       );
       return { id: response.id, error: null };
-    } catch (error) {
+    } catch (error: any) {
       const formattedError = error?.response?.data?.error?.message
         ? new Error(`Facebook API Error: ${error.response.data.error.message}`)
         : error instanceof Error
@@ -101,7 +101,7 @@ export class FacebookStrategy implements PublisherStrategy {
       await this.facebookGraphClient.deletePost(params.postId, connection.access_token);
 
       return { id: params.postId, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { id: null, error };
     }
   }

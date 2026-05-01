@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FacebookGraphClient } from './facebook-graph.client';
 import { FacebookAuthService } from './facebook.auth.service';
 
@@ -9,7 +9,7 @@ import { IngestionModule } from '../ingestion/ingestion.module';
 import { FacebookFeedService } from './facebook-feed.service';
 
 @Module({
-  imports: [HttpModule, RepositoryModule, IngestionModule],
+  imports: [HttpModule, RepositoryModule, forwardRef(() => IngestionModule)],
   providers: [FacebookGraphClient, FacebookAuthService, FacebookStrategy, FacebookFeedService],
   exports: [FacebookAuthService, FacebookGraphClient, FacebookStrategy, FacebookFeedService],
 })

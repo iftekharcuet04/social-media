@@ -7,11 +7,14 @@ import { InstagramModule } from '../instagram/instagram.module';
 import { FacebookAuthService } from '../facebook/facebook.auth.service';
 import { InstagramAuthService } from '../instagram/instagram.auth.service';
 
+import { TokenRefreshService } from './token-refresh.service';
+
 @Module({
   imports: [RepositoryModule, FacebookModule, InstagramModule],
   controllers: [ConnectionController],
   providers: [
     ConnectionService,
+    TokenRefreshService,
     {
       provide: 'AUTH_STRATEGIES',
       useFactory: (

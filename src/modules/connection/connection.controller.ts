@@ -1,4 +1,13 @@
-import { Controller, Get, Delete, Param, Query, UseGuards, Request, ParseBoolPipe, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Delete,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ConnectionService } from './connection.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -21,12 +30,14 @@ export class ConnectionController {
   async handleCallback(
     @Param('platform') platform: string,
     @Query('code') code: string,
+    @Query('state') state: string,
     @Request() req,
     @Query('redirectUri') redirectUri?: string,
   ) {
     await this.connectionService.handleCallback(platform, {
       userId: req.user.uid,
       code,
+      state,
       redirectUri,
     });
     return { message: `${platform} connected successfully` };

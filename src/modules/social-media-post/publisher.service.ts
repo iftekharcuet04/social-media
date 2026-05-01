@@ -8,6 +8,9 @@ import {
 import { PlatformCapabilitiesService } from '../../common/platform-capabilities.service';
 import { ConnectionService } from '../connection/connection.service';
 import { ConnectionRepository } from '../../repositories/connection.repository';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { PUBLISH_POST_QUEUE } from '../../common/queue.constant';
 
 @Injectable()
 export class PublisherService {
@@ -17,9 +20,25 @@ export class PublisherService {
     private readonly platformCapabilitiesService: PlatformCapabilitiesService,
     private readonly connectionService: ConnectionService,
     private readonly connectionRepository: ConnectionRepository,
+    @InjectQueue(PUBLISH_POST_QUEUE)
+    private readonly publishQueue: Queue,
   ) {}
 
   async publish(params: CreatePostParams): Promise<PostResult> {
+    const job = await this.publishQueue.add('publish-job', params, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+
+    return { id: job.id as string, error: null };
+  }
+
+  async executePublish(params: CreatePostParams): Promise<PostResult> {
     this.platformCapabilitiesService.checkCapability(params.platform, 'canPost');
 
     const strategy = this.strategies.find((s) => s.platform === params.platform);

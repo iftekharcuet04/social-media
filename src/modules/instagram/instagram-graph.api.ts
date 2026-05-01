@@ -1,23 +1,18 @@
-import { HttpService } from "@nestjs/axios";
-import { Injectable } from "@nestjs/common";
-import axios from "axios";
+import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
+import axios from 'axios';
 import {
   INSTAGRAM_API_BASE_URL,
   INSTAGRAM_AUTH_BASE_URL,
   INSTAGRAM_GRAPH_BASE_URL,
   INSTAGRAM_VERSION,
-} from "../../common/api.constant";
+} from '../../common/api.constant';
 
 @Injectable()
 export class InstagramGraphApiClient {
   constructor(private readonly httpService: HttpService) {}
 
-  buildLoginurl(params: {
-    clientId: string;
-    redirectUri: string;
-    scopes: string;
-    state?: string;
-  }) {
+  buildLoginurl(params: { clientId: string; redirectUri: string; scopes: string; state?: string }) {
     const { clientId, redirectUri, state } = params;
 
     return (
@@ -45,11 +40,11 @@ export class InstagramGraphApiClient {
         new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
-          grant_type: "authorization_code",
+          grant_type: 'authorization_code',
           redirect_uri: redirectUri,
           code,
         }).toString(),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
       )
       .toPromise();
 
@@ -57,10 +52,7 @@ export class InstagramGraphApiClient {
   }
 
   // short-lived -> long-lived token
-  async getLongLivedToken(params: {
-    shortLivedToken: string;
-    clientSecret: string;
-  }) {
+  async getLongLivedToken(params: { shortLivedToken: string; clientSecret: string }) {
     const { shortLivedToken, clientSecret } = params;
 
     const url = `${INSTAGRAM_GRAPH_BASE_URL}/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
@@ -71,12 +63,10 @@ export class InstagramGraphApiClient {
 
   async getUserInfo(accessToken: string) {
     const userInfoUrl = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/me?fields=user_id,name,username&access_token=${accessToken}`;
-    console.log("userInfoUrl;: ", userInfoUrl);
+    console.log('userInfoUrl;: ', userInfoUrl);
 
-    const userDataResponse = await this.httpService
-      .get(userInfoUrl)
-      .toPromise();
-    console.log("userDataResponse: ", userDataResponse?.data);
+    const userDataResponse = await this.httpService.get(userInfoUrl).toPromise();
+    console.log('userDataResponse: ', userDataResponse?.data);
 
     const { name, username, email, user_id } = userDataResponse?.data || {};
     return { name, email: email || username, username, user_id };
@@ -86,7 +76,7 @@ export class InstagramGraphApiClient {
     const url = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/${userId}/media`;
     const params: Record<string, any> = {
       access_token: accessToken,
-      fields: "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url",
+      fields: 'id,caption,media_type,media_url,permalink,timestamp,thumbnail_url',
     };
     if (cursor) {
       params.after = cursor;
@@ -115,7 +105,7 @@ export class InstagramGraphApiClient {
           media_type: params.mediaType, // reels, stories
           access_token: params.accessToken,
         },
-      }
+      },
     );
   }
 
@@ -136,7 +126,7 @@ export class InstagramGraphApiClient {
           media_type: params.mediaType, // reels, stories
           access_token: params.accessToken,
         },
-      }
+      },
     );
   }
 
@@ -149,14 +139,14 @@ export class InstagramGraphApiClient {
           creation_id: creationId,
           access_token: accessToken,
         },
-      }
+      },
     );
   }
 
   async getMediaDetails(apiUrl: string, mediaId: string, accessToken: string) {
     const response = await axios.get(`${apiUrl}/${mediaId}`, {
       params: {
-        fields: "id,permalink",
+        fields: 'id,permalink',
         access_token: accessToken,
       },
     });

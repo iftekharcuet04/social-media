@@ -6,10 +6,7 @@ export interface RetryOptions {
   label?: string;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const { retries = 3, delayMs = 3000, label = 'operation' } = options;
 
   for (let attempt = 1; attempt <= retries; attempt++) {

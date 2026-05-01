@@ -15,12 +15,19 @@ export class FacebookFeedService {
   /**
    * Syncs feeds for a specific Facebook Page by utilizing the core FeedIngestionService.
    */
-  async syncFeeds(connectionId: string, pageId: string, accessToken: string, userId: string): Promise<void> {
-    this.logger.log(`Starting feed sync for Facebook connection ${connectionId} (Page ID: ${pageId})`);
+  async syncFeeds(
+    connectionId: string,
+    pageId: string,
+    accessToken: string,
+    userId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Starting feed sync for Facebook connection ${connectionId} (Page ID: ${pageId})`,
+    );
 
     const fetchPageFn = async (cursor?: string) => {
       const response = await this.facebookGraphClient.getPageFeed(pageId, accessToken, cursor);
-      
+
       const data = (response.data || []).map((item: any) => ({
         connection_id: connectionId,
         user: { connect: { uid: userId } },
@@ -44,7 +51,7 @@ export class FacebookFeedService {
       userId,
       fetchPageFn,
     );
-    
+
     this.logger.log(`Completed feed sync for Facebook connection ${connectionId}`);
   }
 }

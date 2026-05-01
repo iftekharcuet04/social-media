@@ -18,7 +18,7 @@ export class FacebookStrategy implements PublisherStrategy {
   constructor(
     private readonly facebookGraphClient: FacebookGraphClient,
     private readonly connectionRepository: ConnectionRepository,
-  ) { }
+  ) {}
 
   async createPost(params: CreatePostParams): Promise<PostResult> {
     const fbParams = params as FacebookPostParams;
@@ -39,30 +39,49 @@ export class FacebookStrategy implements PublisherStrategy {
 
       if (type === 'IMAGE') {
         const response = await withRetry(
-          () => this.facebookGraphClient.uploadImage(connection.original_id, connection.access_token, message, url),
-          { retries: 3, delayMs: 3000, label: 'Facebook Image Upload' }
+          () =>
+            this.facebookGraphClient.uploadImage(
+              connection.original_id,
+              connection.access_token,
+              message,
+              url,
+            ),
+          { retries: 3, delayMs: 3000, label: 'Facebook Image Upload' },
         );
         return { id: response.id, error: null };
       }
 
       if (type === 'VIDEO') {
         const response = await withRetry(
-          () => this.facebookGraphClient.uploadVideo(connection.original_id, connection.access_token, message, url),
-          { retries: 3, delayMs: 3000, label: 'Facebook Video Upload' }
+          () =>
+            this.facebookGraphClient.uploadVideo(
+              connection.original_id,
+              connection.access_token,
+              message,
+              url,
+            ),
+          { retries: 3, delayMs: 3000, label: 'Facebook Video Upload' },
         );
         return { id: response.id, error: null };
       }
 
       // TEXT post
       const response = await withRetry(
-        () => this.facebookGraphClient.uploadText(connection.original_id, connection.access_token, message),
-        { retries: 3, delayMs: 3000, label: 'Facebook Text Upload' }
+        () =>
+          this.facebookGraphClient.uploadText(
+            connection.original_id,
+            connection.access_token,
+            message,
+          ),
+        { retries: 3, delayMs: 3000, label: 'Facebook Text Upload' },
       );
       return { id: response.id, error: null };
-    } catch (error) {
-      const formattedError = error?.response?.data?.error?.message 
+    } catch (error: any) {
+      const formattedError = error?.response?.data?.error?.message
         ? new Error(`Facebook API Error: ${error.response.data.error.message}`)
-        : error instanceof Error ? error : new Error(String(error));
+        : error instanceof Error
+          ? error
+          : new Error(String(error));
       return { id: null, error: formattedError };
     }
   }
@@ -79,13 +98,10 @@ export class FacebookStrategy implements PublisherStrategy {
         throw new Error('Connection not found');
       }
 
-      await this.facebookGraphClient.deletePost(
-        params.postId,
-        connection.access_token,
-      );
+      await this.facebookGraphClient.deletePost(params.postId, connection.access_token);
 
       return { id: params.postId, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { id: null, error };
     }
   }

@@ -15,12 +15,14 @@ describe('Concurrency Verification', () => {
 
     for (let i = 0; i < MAX_TOTAL + 10; i++) {
       promises.push(
-        limiter.run(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          completed++;
-        }).catch(() => {
-          rejected++;
-        })
+        limiter
+          .run(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            completed++;
+          })
+          .catch(() => {
+            rejected++;
+          }),
       );
     }
 

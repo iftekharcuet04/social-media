@@ -15,7 +15,7 @@ export class SocialMediaPostService {
   async createPost(params: CreatePostParams): Promise<PostResult> {
     // 1. Process related media assets first (Separating media handling)
     if (params.urls && params.urls.length > 0) {
-       params.urls = await this.mediaService.handleMedia(params.urls);
+      params.urls = await this.mediaService.handleMedia(params.urls);
     }
 
     // 2. Perform core database operations for storing posts
@@ -26,18 +26,23 @@ export class SocialMediaPostService {
         platform: params.platform as any,
         message: params.message,
         urls: params.urls || [],
-        status: 'PUBLISHED',
-      }
+        status: 'PENDING',
+      },
     });
 
-    // 3. Delegate to Publisher for the actual social media posting flow
-    const result = await this.publisherService.publish(params);
+    // 3. Delegate to Publisher for the actual social media posting flow (Queued)
+    const result = await this.publisherService.publish({
+      ...params,
+      dbPostId: dbPost.id,
+    } as any);
 
-    if (result.error) {
-       await this.postRepository.update({
-         where: { id: dbPost.id },
-         data: { status: 'FAILED' }
-       });
+    if (!result.error && result.id) {
+      // We can store the job ID if needed, but for now we just wait for the worker
+    } else if (result.error) {
+      await this.postRepository.update({
+        where: { id: dbPost.id },
+        data: { status: 'FAILED' },
+      });
     }
 
     return result;
@@ -49,7 +54,7 @@ export class SocialMediaPostService {
 
     // 2. Perform core database operations for deleting/archiving posts locally
     if (!result.error && params.postId) {
-       await this.postRepository.markAsDeleted(params.userId, BigInt(params.postId));
+      await this.postRepository.markAsDeleted(params.userId, BigInt(params.postId));
     }
 
     return result;

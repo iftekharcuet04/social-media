@@ -1,12 +1,12 @@
-import { HttpService } from "@nestjs/axios";
-import { Injectable } from "@nestjs/common";
-import axios from "axios";
-import { lastValueFrom } from "rxjs";
+import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+import { lastValueFrom } from 'rxjs';
 import {
   FACEBOOK_AUTH_BASE_URL,
   FACEBOOK_GRAPH_BASE_URL,
   FACEBOOK_VERSION,
-} from "../../common/api.constant";
+} from '../../common/api.constant';
 
 @Injectable()
 export class FacebookGraphClient {
@@ -22,7 +22,7 @@ export class FacebookGraphClient {
       clientId: facebookClientId,
       redirectUri: redirectUri,
       scopes: permission_scopes,
-      state = "",
+      state = '',
     } = params;
     return `${FACEBOOK_AUTH_BASE_URL}?client_id=${facebookClientId}&redirect_uri=${redirectUri}&scope=${permission_scopes}&state=${state}`;
   }
@@ -45,10 +45,10 @@ export class FacebookGraphClient {
     const { data } = await lastValueFrom(
       this.http.get(url, {
         params: {
-          fields: "id,name,email,picture",
+          fields: 'id,name,email,picture',
           access_token: accessToken,
         },
-      })
+      }),
     );
 
     return {
@@ -62,7 +62,7 @@ export class FacebookGraphClient {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/me/accounts`;
 
     const { data } = await lastValueFrom(
-      this.http.get(url, { params: { access_token: accessToken } })
+      this.http.get(url, { params: { access_token: accessToken } }),
     );
 
     return data?.data ?? [];
@@ -70,19 +70,19 @@ export class FacebookGraphClient {
 
   async refreshAccessToken(
     auth: { facebook_client_id: string; facebook_client_secret: string },
-    accessToken: string
+    accessToken: string,
   ) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/oauth/access_token`;
 
     const { data } = await lastValueFrom(
       this.http.get(url, {
         params: {
-          grant_type: "fb_exchange_token",
+          grant_type: 'fb_exchange_token',
           client_id: auth.facebook_client_id,
           client_secret: auth.facebook_client_secret,
           fb_exchange_token: accessToken,
         },
-      })
+      }),
     );
 
     return data;
@@ -92,7 +92,7 @@ export class FacebookGraphClient {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${postId}`;
 
     const { data } = await lastValueFrom(
-      this.http.delete(url, { params: { access_token: accessToken } })
+      this.http.delete(url, { params: { access_token: accessToken } }),
     );
 
     return data;
@@ -102,7 +102,7 @@ export class FacebookGraphClient {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/feed`;
     const params: Record<string, any> = {
       access_token: accessToken,
-      fields: "id,message,permalink_url,full_picture,created_time",
+      fields: 'id,message,permalink_url,full_picture,created_time',
     };
     if (cursor) {
       params.after = cursor;
@@ -114,12 +114,7 @@ export class FacebookGraphClient {
 
   // for post service
 
-   async uploadImage(
-    pageId: string,
-    accessToken: string,
-    message: string,
-    url: string
-  ) {
+  async uploadImage(pageId: string, accessToken: string, message: string, url: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/photos`;
     const response = await axios.post(
       apiUrl,
@@ -131,33 +126,24 @@ export class FacebookGraphClient {
           access_token: accessToken,
           url: url,
         },
-      }
+      },
     );
     return { id: response.data.id, error: null };
   }
 
-   async uploadText(
-    pageId: string,
-    accessToken: string,
-    message: string
-  ) {
+  async uploadText(pageId: string, accessToken: string, message: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/feed`;
     const response = await axios.post(
       apiUrl,
       {},
       {
         params: { message, published: true, access_token: accessToken },
-      }
+      },
     );
     return { id: response.data.id, error: null };
   }
 
-   async uploadVideo(
-    pageId: string,
-    accessToken: string,
-    message: string,
-    url: string
-  ) {
+  async uploadVideo(pageId: string, accessToken: string, message: string, url: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/videos`;
     const response = await axios.post(
       apiUrl,
@@ -169,7 +155,7 @@ export class FacebookGraphClient {
           access_token: accessToken,
           file_url: url,
         },
-      }
+      },
     );
     return { id: response.data.id || response.data.video_id, error: null };
   }

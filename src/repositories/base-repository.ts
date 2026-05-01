@@ -1,8 +1,7 @@
-
-import { Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
-import { PrismaOverrideService } from "../prisma/prisma.service";
-import { CursorPaginationInput, CursorPaginationResult } from "./ICursorInterface";
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaOverrideService } from '../prisma/prisma.service';
+import { CursorPaginationInput, CursorPaginationResult } from './ICursorInterface';
 
 type Tx = Prisma.TransactionClient;
 
@@ -14,11 +13,11 @@ export abstract class BaseRepository<
   WhereUniqueInput,
   WhereInput,
   Select,
-  Include = unknown
+  Include = unknown,
 > {
   constructor(
     protected readonly prisma: PrismaOverrideService,
-    private readonly modelAccessor: (p: any) => any
+    private readonly modelAccessor: (p: any) => any,
   ) {}
 
   protected model(tx?: Tx) {
@@ -71,7 +70,7 @@ export abstract class BaseRepository<
       include,
       skip,
       take,
-      orderBy
+      orderBy,
     });
   }
 
@@ -84,18 +83,10 @@ export abstract class BaseRepository<
     include?: Include;
     tx?: Tx;
   }): Promise<CursorPaginationResult<T, WhereUniqueInput>> {
-    const {
-      where,
-      orderBy,
-      cursorField,
-      pagination,
-      select,
-      include,
-      tx
-    } = params;
-  
+    const { where, orderBy, cursorField, pagination, select, include, tx } = params;
+
     const take = pagination.take ?? 10;
-  
+
     const items = await this.model(tx).findMany({
       where,
       orderBy,
@@ -103,45 +94,33 @@ export abstract class BaseRepository<
       skip: pagination.cursor ? 1 : undefined,
       cursor: pagination.cursor,
       select,
-      include
+      include,
     });
-  
+
     const hasNextPage = items.length > take;
     const data = hasNextPage ? items.slice(0, take) : items;
-  
+
     const nextCursor = hasNextPage
       ? ({ [cursorField]: (data[data.length - 1] as any)[cursorField] } as WhereUniqueInput)
       : undefined;
-  
+
     return {
       data,
-      nextCursor
+      nextCursor,
     };
   }
-  
 
-  async count(params: {
-    where?: WhereInput;
-    tx?: Tx;
-  }): Promise<number> {
+  async count(params: { where?: WhereInput; tx?: Tx }): Promise<number> {
     const { where, tx } = params;
     return this.model(tx).count({ where });
   }
 
-  async update(params: {
-    where: WhereUniqueInput;
-    data: UpdateInput;
-    tx?: Tx;
-  }): Promise<T> {
+  async update(params: { where: WhereUniqueInput; data: UpdateInput; tx?: Tx }): Promise<T> {
     const { where, data, tx } = params;
     return this.model(tx).update({ where, data });
   }
 
-  async updateMany(params: {
-    where: WhereInput;
-    data: UpdateInput;
-    tx?: Tx;
-  }) {
+  async updateMany(params: { where: WhereInput; data: UpdateInput; tx?: Tx }) {
     const { where, data, tx } = params;
     return this.model(tx).updateMany({ where, data });
   }
@@ -163,20 +142,13 @@ export abstract class BaseRepository<
       include,
     });
   }
-  
 
-  async remove(params: {
-    where: WhereUniqueInput;
-    tx?: Tx;
-  }): Promise<T> {
+  async remove(params: { where: WhereUniqueInput; tx?: Tx }): Promise<T> {
     const { where, tx } = params;
     return this.model(tx).delete({ where });
   }
 
-  async removeMany(params: {
-    where: WhereInput;
-    tx?: Tx;
-  }) {
+  async removeMany(params: { where: WhereInput; tx?: Tx }) {
     const { where, tx } = params;
     return this.model(tx).deleteMany({ where });
   }

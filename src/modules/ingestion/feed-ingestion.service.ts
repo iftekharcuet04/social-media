@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConcurrencyLimiterService } from '../../common/services/concurrency-limiter.service';
 import { PostRepository } from '../../repositories/post.repository';
 import { ConnectionPlatform, Prisma } from '@prisma/client';
+import { ConnectionService } from '../connection/connection.service';
 
 export interface FeedFetchResult {
   data: Prisma.SocialPostCreateInput[];
@@ -15,6 +16,8 @@ export class FeedIngestionService {
   constructor(
     private readonly postRepository: PostRepository,
     private readonly concurrencyLimiter: ConcurrencyLimiterService,
+    @Inject(forwardRef(() => ConnectionService))
+    private readonly connectionService: ConnectionService,
   ) {}
 
   /**
@@ -28,7 +31,7 @@ export class FeedIngestionService {
     platform: ConnectionPlatform,
     connectionId: string,
     userId: string,
-    fetchPageFn: (cursor?: string) => Promise<FeedFetchResult>
+    fetchPageFn: (cursor?: string) => Promise<FeedFetchResult>,
   ): Promise<void> {
     await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn);
   }
@@ -46,7 +49,7 @@ export class FeedIngestionService {
         // Exponential backoff
         const backoffMs = Math.pow(2, retryCount) * 1000;
         this.logger.warn(
-          `Retrying fetch for connection ${connectionId} on ${platform} (Attempt ${retryCount}) after ${backoffMs}ms`
+          `Retrying fetch for connection ${connectionId} on ${platform} (Attempt ${retryCount}) after ${backoffMs}ms`,
         );
         await this.delay(backoffMs);
       }
@@ -83,29 +86,88 @@ export class FeedIngestionService {
 
             // Create new post
             return this.postRepository.create({ data: item });
-          })
-        )
+          }),
+        ),
       );
 
       // Fetch the next page recursively
       if (nextCursor) {
-        await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn, nextCursor, 0); // Reset retryCount
+        await this.fetchAndIngestRecursive(
+          platform,
+          connectionId,
+          userId,
+          fetchPageFn,
+          nextCursor,
+          0,
+        ); // Reset retryCount
       }
     } catch (error) {
       const MAX_RETRIES = 5;
 
       if (this.isRetryableError(error) && retryCount < MAX_RETRIES) {
         this.logger.warn(
-          `Retryable error encountered during fetch for connection ${connectionId}: ${error.message}`
+          `Retryable error encountered during fetch for connection ${connectionId}: ${(error as any).message}`,
         );
-        await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn, cursor, retryCount + 1);
+        await this.fetchAndIngestRecursive(
+          platform,
+          connectionId,
+          userId,
+          fetchPageFn,
+          cursor,
+          retryCount + 1,
+        );
+      } else if (this.isUnauthorizedError(error)) {
+        await this.handleUnauthorizedAndRetry(platform, connectionId, userId, fetchPageFn, cursor);
       } else {
         this.logger.error(
-          `Failed to ingest feeds for connection ${connectionId} after ${retryCount} retries. Error: ${error.message}`,
-          error.stack
+          `Failed to ingest feeds for connection ${connectionId} after ${retryCount} retries. Error: ${(error as any).message}`,
+          (error as any).stack,
         );
         throw error;
       }
+    }
+  }
+
+  private isUnauthorizedError(error: any): boolean {
+    const status = error.response?.status || error.status;
+    const message = error.message?.toLowerCase() || '';
+    return (
+      status === 401 ||
+      message.includes('unauthorized') ||
+      message.includes('expired') ||
+      message.includes('invalid token')
+    );
+  }
+
+  private async handleUnauthorizedAndRetry(
+    platform: ConnectionPlatform,
+    connectionId: string,
+    userId: string,
+    fetchPageFn: (cursor?: string) => Promise<FeedFetchResult>,
+    cursor?: string,
+  ): Promise<void> {
+    this.logger.warn(
+      `Unauthorized error for ${platform} (${connectionId}). Attempting token refresh and retry...`,
+    );
+
+    try {
+      // connectionId in IngestionService is the DB connection ID (bigint as string)
+      await this.connectionService.refreshToken(BigInt(connectionId));
+
+      // Retry the fetch and ingest recursively
+      return await this.fetchAndIngestRecursive(
+        platform,
+        connectionId,
+        userId,
+        fetchPageFn,
+        cursor,
+        0,
+      );
+    } catch (refreshError: any) {
+      this.logger.error(
+        `Token refresh failed for connection ${connectionId}: ${refreshError.message}`,
+      );
+      throw refreshError;
     }
   }
 
@@ -117,7 +179,7 @@ export class FeedIngestionService {
     // Basic logic to determine if an error is retryable (e.g., HTTP 429, 5xx)
     // Works with AxiosError structure or standard HTTP status codes
     const status = error.response?.status || error.status;
-    
+
     if (status) {
       return status === 429 || (status >= 500 && status <= 599);
     }
@@ -128,8 +190,8 @@ export class FeedIngestionService {
       return true;
     }
 
-    // Default to true for safety in this basic implementation, 
+    // Default to true for safety in this basic implementation,
     // ideally refine based on specific third-party API error responses
-    return true; 
+    return true;
   }
 }

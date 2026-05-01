@@ -1,39 +1,50 @@
 import { Injectable } from "@nestjs/common";
 import { ConnectionRepository } from "../../repositories/connection.repository";
 import { InstagramGraphApiClient } from "./instagram-graph.api";
+import { ConnectionAuthStrategy, AuthCallbackParams } from "../interfaces/auth-strategy";
+import { PlatformSettingRepository } from "../../repositories/platform-setting.repository";
+import { ConnectionPlatform } from "@prisma/client";
 
 @Injectable()
-export class InstagramAuthService {
+export class InstagramAuthService implements ConnectionAuthStrategy {
+  readonly platform = "INSTAGRAM";
+
   constructor(
     private readonly instagramGraphClient: InstagramGraphApiClient,
-    private readonly connectionRepo: ConnectionRepository
+    private readonly connectionRepo: ConnectionRepository,
+    private readonly platformSettingRepo: PlatformSettingRepository
   ) {}
 
-  consturctLoginUrl(params: {
-    clientId: string;
-    redirectUri: string;
-    scopes: string;
-    state?: string;
-  }) {
-    return this.instagramGraphClient.buildLoginurl(params);
+  async getLoginUrl(userId: string): Promise<string> {
+    const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.INSTAGRAM);
+    if (!settings) throw new Error("Instagram platform settings not found in database");
+
+    const scopes = "user_profile,user_media";
+
+    return this.instagramGraphClient.buildLoginurl({
+      clientId: settings.client_id,
+      redirectUri: settings.redirect_uri,
+      scopes,
+      state: userId,
+    });
   }
 
-  async callback(params: {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    code: string;
-  }) {
-    const { access_token, user_id } =
-      await this.instagramGraphClient.getShortLivedToken(params);
+  async handleCallback(params: AuthCallbackParams): Promise<void> {
+    const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.INSTAGRAM);
+    if (!settings) throw new Error("Instagram platform settings not found in database");
 
-    const instagramUser = await this.instagramGraphClient.getUserInfo(
-      access_token
-    );
+    const { access_token } = await this.instagramGraphClient.getShortLivedToken({
+      clientId: settings.client_id,
+      clientSecret: settings.client_secret,
+      redirectUri: settings.redirect_uri,
+      code: params.code,
+    });
+
+    const instagramUser = await this.instagramGraphClient.getUserInfo(access_token);
 
     const longLivedToken = await this.instagramGraphClient.getLongLivedToken({
       shortLivedToken: access_token,
-      clientSecret: params.clientSecret,
+      clientSecret: settings.client_secret,
     });
 
     const processInfo = {
@@ -42,29 +53,67 @@ export class InstagramAuthService {
       name: instagramUser.name,
       email: instagramUser.email,
       username: instagramUser.username,
+      userId: params.userId,
     };
 
-    this.savecredentials(processInfo);
+    await this.savecredentials(processInfo);
+  }
 
-    return {
-      access_token: longLivedToken.access_token,
-      user_id: instagramUser.user_id,
-    };
+  async refreshToken(connectionId: bigint): Promise<void> {
+    const connection = await this.connectionRepo.findUnique({
+      where: { id: connectionId },
+    });
+
+    if (!connection || !connection.access_token) return;
+
+    const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.INSTAGRAM);
+    if (!settings) throw new Error("Instagram platform settings not found in database");
+
+    const data = await this.instagramGraphClient.getLongLivedToken({
+      shortLivedToken: connection.access_token,
+      clientSecret: settings.client_secret,
+    });
+
+    await this.connectionRepo.update({
+      where: { id: connectionId },
+      data: {
+        access_token: data.access_token,
+        token_expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+      },
+    });
   }
 
   async savecredentials(data: any) {
-    await this.connectionRepo.create({
-      data: {
-        email: data.email,
-        name: data.name,
-        access_token: data.access_token,
-        type: "PROFILE",
-        platform: "INSTAGRAM",
-        original_id: data.user_id,
-        metadata: {
-          username: data.username,
+    const connectionData = {
+      email: data.email,
+      name: data.name,
+      access_token: data.access_token,
+      type: "PROFILE" as const,
+      platform: "INSTAGRAM" as const,
+      original_id: data.user_id,
+      user: { connect: { uid: data.userId } },
+      metadata: {
+        username: data.username,
+      },
+      status: "CONNECTED" as const,
+    };
+
+    await this.connectionRepo.upsert({
+      where: {
+        user_id_platform_original_id: {
+          user_id: data.userId,
+          platform: connectionData.platform,
+          original_id: connectionData.original_id,
         },
       },
+      update: {
+        access_token: connectionData.access_token,
+        name: connectionData.name,
+        metadata: connectionData.metadata,
+        status: "CONNECTED",
+        is_active: true,
+      },
+      create: connectionData,
     });
   }
 }

@@ -82,6 +82,20 @@ export class InstagramGraphApiClient {
     return { name, email: email || username, username, user_id };
   }
 
+  async getUserMedia(userId: string, accessToken: string, cursor?: string) {
+    const url = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/${userId}/media`;
+    const params: Record<string, any> = {
+      access_token: accessToken,
+      fields: "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url",
+    };
+    if (cursor) {
+      params.after = cursor;
+    }
+
+    const { data } = await axios.get(url, { params });
+    return data;
+  }
+
   // social post api
 
   async createImageMediaContainer(params: {

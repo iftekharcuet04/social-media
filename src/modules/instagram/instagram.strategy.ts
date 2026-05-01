@@ -29,6 +29,7 @@ export class InstagramStrategy implements PublisherStrategy {
 
     try {
       const connection = await this.connectionRepository.findByPlatformAndOriginalId(
+        igParams.userId,
         'INSTAGRAM',
         igParams.connectionId,
       );
@@ -57,7 +58,10 @@ export class InstagramStrategy implements PublisherStrategy {
 
       return { id: mediaInfo, error: null };
     } catch (error) {
-      return { id: null, error };
+      const formattedError = error?.response?.data?.error?.message 
+        ? new Error(`Instagram API Error: ${error.response.data.error.message}`)
+        : error instanceof Error ? error : new Error(String(error));
+      return { id: null, error: formattedError };
     }
   }
 
@@ -67,12 +71,15 @@ export class InstagramStrategy implements PublisherStrategy {
     caption: string,
     url?: string,
   ): Promise<string | null> {
-    const response = await this.instagramGraphClient.createImageMediaContainer({
-      apiUrl,
-      accessToken,
-      caption,
-      url,
-    });
+    const response = await withRetry(
+      () => this.instagramGraphClient.createImageMediaContainer({
+        apiUrl,
+        accessToken,
+        caption,
+        url,
+      }),
+      { retries: 3, delayMs: 3000, label: 'Instagram Image Container Creation' }
+    );
     return response?.data?.id ?? null;
   }
 
@@ -84,13 +91,16 @@ export class InstagramStrategy implements PublisherStrategy {
     mediaType?: string,
   ): Promise<string | null> {
     const resolvedMediaType = mediaType ?? 'reels';
-    const response = await this.instagramGraphClient.createVideoMediaContainer({
-      apiUrl,
-      accessToken,
-      caption,
-      mediaType: resolvedMediaType,
-      url,
-    });
+    const response = await withRetry(
+      () => this.instagramGraphClient.createVideoMediaContainer({
+        apiUrl,
+        accessToken,
+        caption,
+        mediaType: resolvedMediaType,
+        url,
+      }),
+      { retries: 3, delayMs: 3000, label: 'Instagram Video Container Creation' }
+    );
     return response?.data?.id ?? null;
   }
 

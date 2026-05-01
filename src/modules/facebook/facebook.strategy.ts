@@ -8,6 +8,7 @@ import {
   PublisherStrategy,
 } from '../interfaces/media-factory';
 import { FacebookGraphClient } from './facebook-graph.client';
+import { withRetry } from '../../common/retry.util';
 
 @Injectable()
 export class FacebookStrategy implements PublisherStrategy {
@@ -24,6 +25,7 @@ export class FacebookStrategy implements PublisherStrategy {
 
     try {
       const connection = await this.connectionRepository.findByPlatformAndOriginalId(
+        fbParams.userId,
         'FACEBOOK',
         fbParams.connectionId,
       );
@@ -36,40 +38,39 @@ export class FacebookStrategy implements PublisherStrategy {
       const url = fbParams.urls?.[0];
 
       if (type === 'IMAGE') {
-        const response = await this.facebookGraphClient.uploadImage(
-          connection.original_id,
-          connection.access_token,
-          message,
-          url,
+        const response = await withRetry(
+          () => this.facebookGraphClient.uploadImage(connection.original_id, connection.access_token, message, url),
+          { retries: 3, delayMs: 3000, label: 'Facebook Image Upload' }
         );
         return { id: response.id, error: null };
       }
 
       if (type === 'VIDEO') {
-        const response = await this.facebookGraphClient.uploadVideo(
-          connection.original_id,
-          connection.access_token,
-          message,
-          url,
+        const response = await withRetry(
+          () => this.facebookGraphClient.uploadVideo(connection.original_id, connection.access_token, message, url),
+          { retries: 3, delayMs: 3000, label: 'Facebook Video Upload' }
         );
         return { id: response.id, error: null };
       }
 
       // TEXT post
-      const response = await this.facebookGraphClient.uploadText(
-        connection.original_id,
-        connection.access_token,
-        message,
+      const response = await withRetry(
+        () => this.facebookGraphClient.uploadText(connection.original_id, connection.access_token, message),
+        { retries: 3, delayMs: 3000, label: 'Facebook Text Upload' }
       );
       return { id: response.id, error: null };
     } catch (error) {
-      return { id: null, error };
+      const formattedError = error?.response?.data?.error?.message 
+        ? new Error(`Facebook API Error: ${error.response.data.error.message}`)
+        : error instanceof Error ? error : new Error(String(error));
+      return { id: null, error: formattedError };
     }
   }
 
   async deletePost(params: DeletePostParams): Promise<PostResult> {
     try {
       const connection = await this.connectionRepository.findByPlatformAndOriginalId(
+        params.userId,
         'FACEBOOK',
         params.connectionId,
       );

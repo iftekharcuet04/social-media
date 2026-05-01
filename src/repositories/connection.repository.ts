@@ -17,11 +17,12 @@ export class ConnectionRepository extends BaseRepository<
   }
 
   async findByPlatformAndOriginalId(
+    userId: string,
     platform: ConnectionPlatform,
     originalId: string,
   ): Promise<{ original_id: string; access_token: string } | null> {
     return this.findFirst({
-      where: { platform, original_id: originalId },
+      where: { user_id: userId, platform, original_id: originalId },
       select: { original_id: true, access_token: true },
     });
   }

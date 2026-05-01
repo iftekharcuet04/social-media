@@ -26,10 +26,29 @@ enum ConnectionStatus {
   REVOKED
 }
 
+model User {
+  id BigInt @id @default(autoincrement())
+  uid String @unique @default(uuid())
+
+  email    String @unique
+  password String
+
+  connections Connection[]
+  socialPosts SocialPost[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("users")
+}
+
 model Connection {
   id BigInt @id @default(autoincrement())
 
   uid String @unique @default(uuid())
+  
+  user_id String
+  user    User   @relation(fields: [user_id], references: [uid], onDelete: Cascade)
 
   original_id String // Provider identity (page_id, ig_id, linkedin_id)
 
@@ -51,17 +70,25 @@ model Connection {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@unique([platform, original_id])
+  @@unique([user_id, platform, original_id])
   @@index([status])
+
+  @@map("connections")
 }
 
 model SocialPost {
   id BigInt @id @default(autoincrement())
 
   uid String @unique @default(uuid())
+  
+  user_id String
+  user    User   @relation(fields: [user_id], references: [uid], onDelete: Cascade)
 
   connection_id String
   platform      ConnectionPlatform
+
+  original_post_id String? // The real ID from the social platform
+  post_url         String? // Direct URL to the post
 
   message String?
   urls    String[]
@@ -70,4 +97,21 @@ model SocialPost {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@map("social_posts")
+}
+
+model PlatformSetting {
+  id BigInt @id @default(autoincrement())
+  
+  platform ConnectionPlatform @unique
+  
+  client_id     String
+  client_secret String
+  redirect_uri  String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("platform_settings")
 }

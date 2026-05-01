@@ -5,10 +5,12 @@ import { FacebookAuthService } from "./facebook.auth.service";
 import { HttpModule } from "@nestjs/axios";
 import { RepositoryModule } from "../../repositories/repository.module";
 import { FacebookStrategy } from "./facebook.strategy";
+import { IngestionModule } from "../ingestion/ingestion.module";
+import { FacebookFeedService } from "./facebook-feed.service";
 
 @Module({
-  imports: [HttpModule, RepositoryModule],
-  providers: [FacebookGraphClient, FacebookAuthService, FacebookStrategy],
-  exports: [FacebookAuthService, FacebookGraphClient, FacebookStrategy],
+  imports: [HttpModule, RepositoryModule, IngestionModule],
+  providers: [FacebookGraphClient, FacebookAuthService, FacebookStrategy, FacebookFeedService],
+  exports: [FacebookAuthService, FacebookGraphClient, FacebookStrategy, FacebookFeedService],
 })
 export class FacebookModule {}

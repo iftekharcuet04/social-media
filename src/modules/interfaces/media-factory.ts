@@ -1,5 +1,6 @@
 // Shared fields all platforms need — NO media fields here
 export interface BasePostParams {
+  userId: string;
   platform: string;
   connectionId: string;
   message: string;
@@ -29,6 +30,7 @@ export interface LinkedInPostParams extends BasePostParams {
 export type CreatePostParams = FacebookPostParams | InstagramPostParams | LinkedInPostParams;
 
 export interface DeletePostParams {
+  userId: string;
   platform: string;
   connectionId: string;
   postId: string;

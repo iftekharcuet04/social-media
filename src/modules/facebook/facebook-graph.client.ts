@@ -98,6 +98,20 @@ export class FacebookGraphClient {
     return data;
   }
 
+  async getPageFeed(pageId: string, accessToken: string, cursor?: string) {
+    const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/feed`;
+    const params: Record<string, any> = {
+      access_token: accessToken,
+      fields: "id,message,permalink_url,full_picture,created_time",
+    };
+    if (cursor) {
+      params.after = cursor;
+    }
+
+    const { data } = await lastValueFrom(this.http.get(url, { params }));
+    return data;
+  }
+
   // for post service
 
    async uploadImage(
@@ -107,26 +121,19 @@ export class FacebookGraphClient {
     url: string
   ) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/photos`;
-    try {
-      const response = await axios.post(
-        apiUrl,
-        {},
-        {
-          params: {
-            message,
-            published: true,
-            access_token: accessToken,
-            url: url,
-          },
-        }
-      );
-      return { id: response.data.id, error: null };
-    } catch (error) {
-      return {
-        id: null,
-        error: error,
-      };
-    }
+    const response = await axios.post(
+      apiUrl,
+      {},
+      {
+        params: {
+          message,
+          published: true,
+          access_token: accessToken,
+          url: url,
+        },
+      }
+    );
+    return { id: response.data.id, error: null };
   }
 
    async uploadText(
@@ -135,18 +142,14 @@ export class FacebookGraphClient {
     message: string
   ) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/feed`;
-    try {
-      const response = await axios.post(
-        apiUrl,
-        {},
-        {
-          params: { message, published: true, access_token: accessToken },
-        }
-      );
-      return { id: response.data.id, error: null };
-    } catch (error) {
-      return { id: null, error: error };
-    }
+    const response = await axios.post(
+      apiUrl,
+      {},
+      {
+        params: { message, published: true, access_token: accessToken },
+      }
+    );
+    return { id: response.data.id, error: null };
   }
 
    async uploadVideo(
@@ -156,22 +159,18 @@ export class FacebookGraphClient {
     url: string
   ) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/videos`;
-    try {
-      const response = await axios.post(
-        apiUrl,
-        {},
-        {
-          params: {
-            description: message,
-            published: true,
-            access_token: accessToken,
-            file_url: url,
-          },
-        }
-      );
-      return { id: response.data.id || response.data.video_id, error: null };
-    } catch (error) {
-      return { error: error };
-    }
+    const response = await axios.post(
+      apiUrl,
+      {},
+      {
+        params: {
+          description: message,
+          published: true,
+          access_token: accessToken,
+          file_url: url,
+        },
+      }
+    );
+    return { id: response.data.id || response.data.video_id, error: null };
   }
 }

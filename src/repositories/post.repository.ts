@@ -16,9 +16,9 @@ export class PostRepository extends BaseRepository<
     super(prisma, (db) => db.socialPost);
   }
 
-  async markAsDeleted(postId: bigint): Promise<SocialPost> {
-    return this.update({
-      where: { id: postId },
+  async markAsDeleted(userId: string, postId: bigint): Promise<void> {
+    await this.updateMany({
+      where: { id: postId, user_id: userId },
       data: { status: 'DELETED' },
     });
   }

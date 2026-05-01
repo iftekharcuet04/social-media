@@ -6,24 +6,16 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('social-media')
 @UseGuards(JwtAuthGuard)
 export class SocialMediaController {
-  constructor(
-    private readonly socialMediaPostService: SocialMediaPostService,
-  ) {}
+  constructor(private readonly socialMediaPostService: SocialMediaPostService) {}
 
   @Post('create')
-  async createPost(
-    @Request() req,
-    @Body(new ValidationPipe()) createPostDto: CreatePostParams,
-  ) {
+  async createPost(@Request() req, @Body(new ValidationPipe()) createPostDto: CreatePostParams) {
     createPostDto.userId = req.user.uid;
     return await this.socialMediaPostService.createPost(createPostDto);
   }
 
   @Delete('delete')
-  async deletePost(
-    @Request() req,
-    @Body(new ValidationPipe()) deletePostDto: DeletePostParams,
-  ) {
+  async deletePost(@Request() req, @Body(new ValidationPipe()) deletePostDto: DeletePostParams) {
     deletePostDto.userId = req.user.uid;
     return await this.socialMediaPostService.deletePost(deletePostDto);
   }

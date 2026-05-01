@@ -28,7 +28,7 @@ export class FeedIngestionService {
     platform: ConnectionPlatform,
     connectionId: string,
     userId: string,
-    fetchPageFn: (cursor?: string) => Promise<FeedFetchResult>
+    fetchPageFn: (cursor?: string) => Promise<FeedFetchResult>,
   ): Promise<void> {
     await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn);
   }
@@ -46,7 +46,7 @@ export class FeedIngestionService {
         // Exponential backoff
         const backoffMs = Math.pow(2, retryCount) * 1000;
         this.logger.warn(
-          `Retrying fetch for connection ${connectionId} on ${platform} (Attempt ${retryCount}) after ${backoffMs}ms`
+          `Retrying fetch for connection ${connectionId} on ${platform} (Attempt ${retryCount}) after ${backoffMs}ms`,
         );
         await this.delay(backoffMs);
       }
@@ -83,26 +83,40 @@ export class FeedIngestionService {
 
             // Create new post
             return this.postRepository.create({ data: item });
-          })
-        )
+          }),
+        ),
       );
 
       // Fetch the next page recursively
       if (nextCursor) {
-        await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn, nextCursor, 0); // Reset retryCount
+        await this.fetchAndIngestRecursive(
+          platform,
+          connectionId,
+          userId,
+          fetchPageFn,
+          nextCursor,
+          0,
+        ); // Reset retryCount
       }
     } catch (error) {
       const MAX_RETRIES = 5;
 
       if (this.isRetryableError(error) && retryCount < MAX_RETRIES) {
         this.logger.warn(
-          `Retryable error encountered during fetch for connection ${connectionId}: ${error.message}`
+          `Retryable error encountered during fetch for connection ${connectionId}: ${error.message}`,
         );
-        await this.fetchAndIngestRecursive(platform, connectionId, userId, fetchPageFn, cursor, retryCount + 1);
+        await this.fetchAndIngestRecursive(
+          platform,
+          connectionId,
+          userId,
+          fetchPageFn,
+          cursor,
+          retryCount + 1,
+        );
       } else {
         this.logger.error(
           `Failed to ingest feeds for connection ${connectionId} after ${retryCount} retries. Error: ${error.message}`,
-          error.stack
+          error.stack,
         );
         throw error;
       }
@@ -117,7 +131,7 @@ export class FeedIngestionService {
     // Basic logic to determine if an error is retryable (e.g., HTTP 429, 5xx)
     // Works with AxiosError structure or standard HTTP status codes
     const status = error.response?.status || error.status;
-    
+
     if (status) {
       return status === 429 || (status >= 500 && status <= 599);
     }
@@ -128,8 +142,8 @@ export class FeedIngestionService {
       return true;
     }
 
-    // Default to true for safety in this basic implementation, 
+    // Default to true for safety in this basic implementation,
     // ideally refine based on specific third-party API error responses
-    return true; 
+    return true;
   }
 }

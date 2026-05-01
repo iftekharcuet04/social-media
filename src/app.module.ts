@@ -5,6 +5,9 @@ import { PrismaOverrideModule } from "./prisma/prisma.module";
 import { RepositoryModule } from "./repositories/repository.module";
 import { SocialMediaPostModule } from "./modules/social-media-post/social-media.module";
 import { CommonModule } from "./common/common.module";
+import { IngestionModule } from "./modules/ingestion/ingestion.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { ConnectionModule } from "./modules/connection/connection.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import appConfig from "./config/app.config";
@@ -23,7 +26,10 @@ import apiConfig from "./config/api.config";
     PrismaOverrideModule,
     RepositoryModule,
     SocialMediaPostModule,
-    CommonModule
+    CommonModule,
+    IngestionModule,
+    AuthModule,
+    ConnectionModule
   ],
   controllers: [AppController],
   providers: [AppService],

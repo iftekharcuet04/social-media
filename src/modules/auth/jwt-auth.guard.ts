@@ -13,16 +13,16 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
-    
+
     if (!token) {
       throw new UnauthorizedException('Authentication token is missing');
     }
-    
+
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
       });
-      
+
       // Fetch full user from DB
       const user = await this.userRepository.findUnique({
         where: { uid: payload.sub },
@@ -38,7 +38,7 @@ export class JwtAuthGuard implements CanActivate {
       if (e instanceof UnauthorizedException) throw e;
       throw new UnauthorizedException('Invalid or expired token');
     }
-    
+
     return true;
   }
 

@@ -1,26 +1,29 @@
-import { Injectable } from "@nestjs/common";
-import { FACEBOOK_GRAPH_BASE_URL } from "../../common/api.constant";
-import { ConnectionRepository } from "../../repositories/connection.repository";
-import { FacebookGraphClient } from "./facebook-graph.client";
-import { ConnectionAuthStrategy, AuthCallbackParams } from "../interfaces/auth-strategy";
-import { PlatformSettingRepository } from "../../repositories/platform-setting.repository";
-import { ConnectionPlatform } from "@prisma/client";
+import { Injectable } from '@nestjs/common';
+import { FACEBOOK_GRAPH_BASE_URL } from '../../common/api.constant';
+import { ConnectionRepository } from '../../repositories/connection.repository';
+import { FacebookGraphClient } from './facebook-graph.client';
+import { ConnectionAuthStrategy, AuthCallbackParams } from '../interfaces/auth-strategy';
+import { PlatformSettingRepository } from '../../repositories/platform-setting.repository';
+import { ConnectionPlatform } from '@prisma/client';
+
+import { FacebookFeedService } from './facebook-feed.service';
 
 @Injectable()
 export class FacebookAuthService implements ConnectionAuthStrategy {
-  readonly platform = "FACEBOOK";
+  readonly platform = 'FACEBOOK';
 
   constructor(
     private readonly connectionRepo: ConnectionRepository,
     private readonly facebookGraphClient: FacebookGraphClient,
-    private readonly platformSettingRepo: PlatformSettingRepository
+    private readonly platformSettingRepo: PlatformSettingRepository,
+    private readonly facebookFeedService: FacebookFeedService,
   ) {}
 
   async getLoginUrl(userId: string): Promise<string> {
     const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.FACEBOOK);
-    if (!settings) throw new Error("Facebook platform settings not found in database");
+    if (!settings) throw new Error('Facebook platform settings not found in database');
 
-    const scopes = ["email", "pages_show_list", "pages_read_engagement", "pages_manage_posts"];
+    const scopes = ['email', 'pages_show_list', 'pages_read_engagement', 'pages_manage_posts'];
 
     return this.facebookGraphClient.constructLoginUrl({
       clientId: settings.client_id,
@@ -32,7 +35,7 @@ export class FacebookAuthService implements ConnectionAuthStrategy {
 
   async handleCallback(params: AuthCallbackParams): Promise<void> {
     const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.FACEBOOK);
-    if (!settings) throw new Error("Facebook platform settings not found in database");
+    if (!settings) throw new Error('Facebook platform settings not found in database');
 
     const { access_token } = await this.facebookGraphClient.exchangeCodeForToken({
       clientId: settings.client_id,
@@ -62,21 +65,50 @@ export class FacebookAuthService implements ConnectionAuthStrategy {
 
     if (!connection || !connection.access_token) return;
 
-    const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.FACEBOOK);
-    if (!settings) throw new Error("Facebook platform settings not found in database");
+    try {
+      const settings = await this.platformSettingRepo.getByPlatform(ConnectionPlatform.FACEBOOK);
+      if (!settings) throw new Error('Facebook platform settings not found in database');
 
-    const data = await this.facebookGraphClient.refreshAccessToken(
-      { facebook_client_id: settings.client_id, facebook_client_secret: settings.client_secret },
-      connection.access_token
-    );
+      const data = await this.facebookGraphClient.refreshAccessToken(
+        { facebook_client_id: settings.client_id, facebook_client_secret: settings.client_secret },
+        connection.access_token,
+      );
 
-    await this.connectionRepo.update({
-      where: { id: connectionId },
-      data: {
-        access_token: data.access_token,
-        token_expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
-      },
+      await this.connectionRepo.update({
+        where: { id: connectionId },
+        data: {
+          access_token: data.access_token,
+          token_expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+          status: 'CONNECTED',
+        },
+      });
+    } catch (error) {
+      // Flag as disconnected if refresh fails (e.g. password changed, app revoked)
+      await this.connectionRepo.update({
+        where: { id: connectionId },
+        data: { status: 'DISCONNECTED', is_active: false },
+      });
+      throw error;
+    }
+  }
+
+  async syncFeeds(userId: string): Promise<void> {
+    const connections = await this.connectionRepo.findAll({
+      where: { user_id: userId, platform: 'FACEBOOK', is_active: true },
     });
+
+    for (const connection of connections) {
+      try {
+        await this.facebookFeedService.syncFeeds(
+          connection.uid,
+          connection.original_id,
+          connection.access_token,
+          userId,
+        );
+      } catch (error) {
+        console.error(`Failed to sync feeds for FB connection ${connection.uid}:`, error);
+      }
+    }
   }
 
   async saveCredentials({ clientId, pageData, email, id, profileImage, userId }) {
@@ -84,9 +116,9 @@ export class FacebookAuthService implements ConnectionAuthStrategy {
 
     const pages = pageData.map((page) => ({
       original_id: page.id,
-      platform: "FACEBOOK" as const,
-      type: "PAGE" as const,
-      status: "CONNECTED" as const,
+      platform: 'FACEBOOK' as const,
+      type: 'PAGE' as const,
+      status: 'CONNECTED' as const,
       name: page.name,
       email,
       access_token: page.access_token,
@@ -112,12 +144,12 @@ export class FacebookAuthService implements ConnectionAuthStrategy {
             access_token: page.access_token,
             name: page.name,
             metadata: page.metadata,
-            status: "CONNECTED",
+            status: 'CONNECTED',
             is_active: true,
           },
           create: page,
-        })
-      )
+        }),
+      ),
     );
   }
 }

@@ -11,15 +11,34 @@ import { LinkedInModule } from '../linkedin/linkedin.module';
 import { FacebookStrategy } from '../facebook/facebook.strategy';
 import { InstagramStrategy } from '../instagram/instagram.strategy';
 import { LinkedInStrategy } from '../linkedin/linkedin.strategy';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { PublishProcessor } from './queues/publish.processor';
+
+import { PUBLISH_POST_QUEUE } from '../../common/queue.constant';
 
 @Module({
-  imports: [RepositoryModule, FacebookModule, InstagramModule, LinkedInModule],
+  imports: [
+    RepositoryModule,
+    FacebookModule,
+    InstagramModule,
+    LinkedInModule,
+    BullModule.registerQueue({
+      name: PUBLISH_POST_QUEUE,
+    }),
+    BullBoardModule.forFeature({
+      name: PUBLISH_POST_QUEUE,
+      adapter: BullMQAdapter,
+    }),
+  ],
   controllers: [SocialMediaController],
   providers: [
     SocialMediaPostService,
     PublisherService,
     MediaService,
     PlatformCapabilitiesService,
+    PublishProcessor,
     {
       provide: 'POST_STRATEGIES',
       useFactory: (

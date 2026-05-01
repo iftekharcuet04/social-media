@@ -1,6 +1,6 @@
-import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
-import { ConcurrencyLimiterService } from "../common/services/concurrency-limiter.service";
+import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+import { ConcurrencyLimiterService } from '../common/services/concurrency-limiter.service';
 
 @Injectable()
 export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
@@ -11,27 +11,25 @@ export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
 
   constructor() {
     const baseClient = new PrismaClient();
-    
+
     this.client = baseClient.$extends({
       query: {
         $allOperations: async ({ model, operation, args, query }) => {
           const startTime = Date.now();
-          
+
           const result = await this.limiter.run(async () => {
             return await query(args);
           });
-          
+
           const duration = Date.now() - startTime;
           if (duration > this.QUERY_TIMEOUT_MS) {
-            this.logger.warn(
-              `CRITICAL: Query ${model}.${operation} took ${duration}ms!`
-            );
+            this.logger.warn(`CRITICAL: Query ${model}.${operation} took ${duration}ms!`);
           }
 
           // Handle binary UID to hex conversion if present (matching boilerplate middleware)
           return this.handleResult(result);
-        }
-      }
+        },
+      },
     });
   }
 
@@ -44,18 +42,18 @@ export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
 
   private transformItem(item: any) {
     if (item && item.uid && Buffer.isBuffer(item.uid)) {
-      item.uid = item.uid.toString("hex");
+      item.uid = item.uid.toString('hex');
     }
     return item;
   }
 
   async onModuleInit() {
     if (!this.client || process.env.NODE_ENV === 'test') {
-      this.logger.log("Skipping DB connection in test environment");
+      this.logger.log('Skipping DB connection in test environment');
       return;
     }
     await (this.client as any).$connect();
-    this.logger.log("PrismaOverrideService connected");
+    this.logger.log('PrismaOverrideService connected');
   }
 
   async onModuleDestroy() {

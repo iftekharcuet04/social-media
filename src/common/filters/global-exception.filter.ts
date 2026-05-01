@@ -42,9 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let translatedMessage: string | string[];
     if (Array.isArray(message)) {
-      translatedMessage = message.map((msg) =>
-        this.translationService.translate(msg, language)
-      );
+      translatedMessage = message.map((msg) => this.translationService.translate(msg, language));
     } else {
       translatedMessage = this.translationService.translate(message, language);
     }

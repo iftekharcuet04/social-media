@@ -15,12 +15,23 @@ export class InstagramFeedService {
   /**
    * Syncs feeds for a specific Instagram User by utilizing the core FeedIngestionService.
    */
-  async syncFeeds(connectionId: string, instagramUserId: string, accessToken: string, userId: string): Promise<void> {
-    this.logger.log(`Starting feed sync for Instagram connection ${connectionId} (Instagram User ID: ${instagramUserId})`);
+  async syncFeeds(
+    connectionId: string,
+    instagramUserId: string,
+    accessToken: string,
+    userId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Starting feed sync for Instagram connection ${connectionId} (Instagram User ID: ${instagramUserId})`,
+    );
 
     const fetchPageFn = async (cursor?: string) => {
-      const response = await this.instagramGraphApiClient.getUserMedia(instagramUserId, accessToken, cursor);
-      
+      const response = await this.instagramGraphApiClient.getUserMedia(
+        instagramUserId,
+        accessToken,
+        cursor,
+      );
+
       const data = (response.data || []).map((item: any) => ({
         connection_id: connectionId,
         user: { connect: { uid: userId } },
@@ -44,7 +55,7 @@ export class InstagramFeedService {
       userId,
       fetchPageFn,
     );
-    
+
     this.logger.log(`Completed feed sync for Instagram connection ${connectionId}`);
   }
 }

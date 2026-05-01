@@ -21,6 +21,7 @@ export class SocialMediaPostService {
     // 2. Perform core database operations for storing posts
     const dbPost = await this.postRepository.create({
       data: {
+        user: { connect: { uid: params.userId } },
         connection_id: params.connectionId,
         platform: params.platform as any,
         message: params.message,
@@ -48,7 +49,7 @@ export class SocialMediaPostService {
 
     // 2. Perform core database operations for deleting/archiving posts locally
     if (!result.error && params.postId) {
-       await this.postRepository.markAsDeleted(BigInt(params.postId));
+       await this.postRepository.markAsDeleted(params.userId, BigInt(params.postId));
     }
 
     return result;

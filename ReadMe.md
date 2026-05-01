@@ -4,14 +4,14 @@ A professional social media management backend built with NestJS and Prisma, des
 
 ## Core Features
 
-- **Multi-Platform Integration**: Seamlessly connect and manage Facebook and Instagram accounts.
+- **Multi-Platform Integration**: Seamlessly connect and manage Facebook, Instagram, and LinkedIn accounts.
+- **Automated Feed Ingestion**: High-throughput ingestion of social feeds using recursive retry, exponential backoff, and DB concurrency management.
 - **Media Publishing**: Robust pipeline for publishing posts and managing media across different social platforms.
 - **Connection Management**: Automated handling of access tokens, refresh tokens, and account metadata.
-- **Scalable Architecture**: Implements the Repository pattern for clean data access and separation of concerns.
 
-## Technical Foundation (Boilerplate Standards)
+## Technical Foundation (Engineering Standards)
 
-This project follows premium boilerplate standards to ensure production-grade reliability:
+This project follows premium engineering standards to ensure production-grade reliability:
 
 ### 1. Database & Concurrency
 - **Concurrency Limiting**: Integrated `ConcurrencyLimiterService` ensures the database is never overwhelmed by limiting active queries to 20 and total capacity to 150.
@@ -26,6 +26,10 @@ This project follows premium boilerplate standards to ensure production-grade re
 - **Standardized Responses**: All API responses follow a unified structure for easier frontend integration.
 - **Global Error Handling**: Centralized exception filtering that provides clear, localized error messages.
 - **Health Monitoring**: Built-in `/health` and `/health-details` endpoints for system status tracking.
+
+### 4. Software Design Patterns
+- **Strategy Pattern**: Extensible social media publishing pipeline using `PublisherStrategy` allowing zero if/else complexity for platform orchestration.
+- **Repository Pattern**: Strict data access abstraction separating business logic from database (Prisma) operations.
 
 ## Project Structure
 
@@ -43,7 +47,9 @@ src/
 ├── locales/                    # i18n JSON files (en, es, etc.)
 ├── modules/                    # Domain-specific logic
 │   ├── facebook/               # Facebook platform integration
+│   ├── ingestion/              # High-throughput automated feed ingestion
 │   ├── instagram/              # Instagram platform integration
+│   ├── linkedin/               # LinkedIn platform integration
 │   └── social-media-post/      # Core post orchestration logic
 ├── prisma/                     # Database client & extensions
 └── repositories/               # Data access layer

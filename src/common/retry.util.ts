@@ -27,8 +27,9 @@ export async function withRetry<T>(
       );
 
       if (attempt < retries) {
-        console.log(`Retrying ${label} in ${delayMs / 1000}s...`);
-        await delay(delayMs);
+        const currentDelay = Math.pow(2, attempt - 1) * delayMs;
+        console.log(`Retrying ${label} in ${currentDelay / 1000}s...`);
+        await delay(currentDelay);
       } else {
         console.error(`All ${label} attempts failed`);
         throw error;

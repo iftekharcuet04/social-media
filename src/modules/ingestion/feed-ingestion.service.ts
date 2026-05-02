@@ -1,4 +1,5 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ConcurrencyLimiterService } from '../../common/services/concurrency-limiter.service';
 import { PostRepository } from '../../repositories/post.repository';
 import { ConnectionPlatform, Prisma } from '@prisma/client';
@@ -16,8 +17,7 @@ export class FeedIngestionService {
   constructor(
     private readonly postRepository: PostRepository,
     private readonly concurrencyLimiter: ConcurrencyLimiterService,
-    @Inject(forwardRef(() => ConnectionService))
-    private readonly connectionService: ConnectionService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -151,8 +151,9 @@ export class FeedIngestionService {
     );
 
     try {
-      // connectionId in IngestionService is the DB connection ID (bigint as string)
-      await this.connectionService.refreshToken(BigInt(connectionId));
+      // Lazily resolve ConnectionService to break circular dependency
+      const connectionService = this.moduleRef.get(ConnectionService, { strict: false });
+      await connectionService.refreshToken(BigInt(connectionId));
 
       // Retry the fetch and ingest recursively
       return await this.fetchAndIngestRecursive(

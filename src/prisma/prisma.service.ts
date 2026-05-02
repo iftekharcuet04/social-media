@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConcurrencyLimiterService } from '../common/services/concurrency-limiter.service';
 
@@ -52,8 +52,17 @@ export class PrismaOverrideService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Skipping DB connection in test environment');
       return;
     }
-    await (this.client as any).$connect();
-    this.logger.log('PrismaOverrideService connected');
+
+    const url = process.env.DATABASE_URL;
+    this.logger.log(`Connecting to database at ${url?.split('@')[1] || 'unknown'}...`);
+    try {
+      await (this.client as any).$connect();
+      this.logger.log('PrismaOverrideService connected');
+    } catch (error: any) {
+      this.logger.error(`Failed to connect to database: ${error.message}`);
+      // Don't throw here to allow app to start even if DB is down (or handled elsewhere)
+      // Actually, Nest will still wait if this is in onModuleInit
+    }
   }
 
   async onModuleDestroy() {

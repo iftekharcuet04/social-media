@@ -1,39 +1,22 @@
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { BullBoardModule } from '@bull-board/nestjs';
-import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PlatformCapabilitiesService } from '../../common/platform-capabilities.service';
 import { RepositoryModule } from '../../repositories/repository.module';
 import { FacebookModule } from '../facebook/facebook.module';
-import { FacebookStrategy } from '../facebook/facebook.strategy';
 import { InstagramModule } from '../instagram/instagram.module';
-import { InstagramStrategy } from '../instagram/instagram.strategy';
 import { LinkedInModule } from '../linkedin/linkedin.module';
-import { LinkedInStrategy } from '../linkedin/linkedin.strategy';
 import { MediaService } from './media.service';
 import { PublisherService } from './publisher.service';
 import { PublishProcessor } from './queues/publish.processor';
 import { SocialMediaPostService } from './social-media-post.service';
 import { SocialMediaController } from './social-media.controller';
 
-import { PUBLISH_POST_QUEUE } from '../../common/queue.constant';
 import { ConnectionModule } from '../connection/connection.module';
+import { FacebookStrategy } from '../facebook/facebook.strategy';
+import { InstagramStrategy } from '../instagram/instagram.strategy';
+import { LinkedInStrategy } from '../linkedin/linkedin.strategy';
 
 @Module({
-  imports: [
-    RepositoryModule,
-    ConnectionModule,
-    forwardRef(() => FacebookModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
-    BullModule.registerQueue({
-      name: PUBLISH_POST_QUEUE,
-    }),
-    BullBoardModule.forFeature({
-      name: PUBLISH_POST_QUEUE,
-      adapter: BullMQAdapter,
-    }),
-  ],
+  imports: [RepositoryModule, ConnectionModule, FacebookModule, InstagramModule, LinkedInModule],
   controllers: [SocialMediaController],
   providers: [
     SocialMediaPostService,
@@ -51,6 +34,6 @@ import { ConnectionModule } from '../connection/connection.module';
       inject: [FacebookStrategy, InstagramStrategy, LinkedInStrategy],
     },
   ],
-  exports: [ConnectionModule],
+  exports: [],
 })
 export class SocialMediaPostModule {}

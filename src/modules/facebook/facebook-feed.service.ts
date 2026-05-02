@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ConnectionPlatform } from '@prisma/client';
 import { FeedIngestionService } from '../ingestion/feed-ingestion.service';
 import { FacebookGraphClient } from './facebook-graph.client';
@@ -8,8 +9,8 @@ export class FacebookFeedService {
   private readonly logger = new Logger(FacebookFeedService.name);
 
   constructor(
-    private readonly feedIngestionService: FeedIngestionService,
     private readonly facebookGraphClient: FacebookGraphClient,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -45,7 +46,8 @@ export class FacebookFeedService {
       };
     };
 
-    await this.feedIngestionService.ingestFeeds(
+    const feedIngestionService = this.moduleRef.get(FeedIngestionService, { strict: false });
+    await feedIngestionService.ingestFeeds(
       ConnectionPlatform.FACEBOOK,
       connectionId,
       userId,

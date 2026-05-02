@@ -3,10 +3,11 @@ import { CommonModule } from '../../common/common.module';
 import { RepositoryModule } from '../../repositories/repository.module';
 import { FeedIngestionService } from './feed-ingestion.service';
 import { ConnectionModule } from '../connection/connection.module';
+import { ConcurrencyLimiterService } from '../../common/services/concurrency-limiter.service';
 
 @Module({
   imports: [CommonModule, RepositoryModule, forwardRef(() => ConnectionModule)],
-  providers: [FeedIngestionService],
+  providers: [FeedIngestionService, ConcurrencyLimiterService],
   exports: [FeedIngestionService],
 })
 export class IngestionModule {}

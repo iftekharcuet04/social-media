@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConnectionService } from './connection.service';
 import { ConnectionController } from './connection.controller';
 import { RepositoryModule } from '../../repositories/repository.module';
@@ -10,7 +10,7 @@ import { InstagramAuthService } from '../instagram/instagram.auth.service';
 import { TokenRefreshService } from './token-refresh.service';
 
 @Module({
-  imports: [RepositoryModule, FacebookModule, InstagramModule],
+  imports: [RepositoryModule, forwardRef(() => FacebookModule), forwardRef(() => InstagramModule)],
   controllers: [ConnectionController],
   providers: [
     ConnectionService,

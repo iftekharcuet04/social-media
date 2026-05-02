@@ -13,23 +13,29 @@ A professional social media management backend built with NestJS and Prisma, des
 
 This project follows premium engineering standards to ensure production-grade reliability:
 
-### 1. OAuth Strategy Pattern
+### 1. Advanced Architecture & Dependency Management
+- **Dynamic Resolution**: Heavy reliance on `ModuleRef` for lazy, runtime dependency resolution to prevent circular dependencies and deadlocks between modules (e.g., Connection, Ingestion, Publisher).
+- **Asynchronous Processing**: High-latency tasks like publishing social media posts are offloaded to **BullMQ** (Redis) background queues, ensuring the API remains fast and responsive.
+
+### 2. OAuth Strategy Pattern
 The system uses a pluggable strategy architecture for social platforms. Each provider (Facebook, Instagram, etc.) implements a standard `ConnectionAuthStrategy`, encapsulating:
 - Platform-specific Login URLs.
 - Token exchange logic (short-lived to long-lived).
 - Automated background refreshing of expired tokens.
 
-### 2. Multi-Tenant Data Isolation
-- **Security**: All requests are protected by a `JwtAuthGuard` that injects the user context.
-- **Persistence**: Every database record (connections, posts, feeds) is cryptographically scoped to the `userId`, preventing any cross-tenant data leakage.
+### 3. Multi-Tenant Security & Rate Limiting
+- **Authentication**: All requests are protected by a `JwtAuthGuard` that injects the user context.
+- **Data Isolation**: Every database record (connections, posts, feeds) is cryptographically scoped to the `userId`, preventing any cross-tenant data leakage.
+- **Throttling**: A global `ThrottlerGuard` protects the API from brute-force and DDoS attacks (e.g., 10 requests per 60 seconds).
 
-### 3. Database & Concurrency
+### 4. Database & Concurrency
 - **Concurrency Limiting**: Integrated `ConcurrencyLimiterService` ensures the database is never overwhelmed by limiting active queries.
 - **Global Settings**: OAuth credentials (Client IDs/Secrets) are managed via the `PlatformSetting` model, allowing for global configuration updates without redeployment.
 
-### 4. Internationalization (i18n)
-- **Multi-language Support**: Full translation support for API responses using localized JSON files.
-- **Smart Detection**: Automatically detects user language preference from the `Accept-Language` header.
+### 5. Observability & Monitoring
+- **Structured Logging**: Integrated `nestjs-pino` outputs high-performance, machine-readable JSON logs in production, while pretty-printing in development.
+- **Advanced Health Checks**: Built with `@nestjs/terminus`, the `/health` endpoint actively pings both **PostgreSQL** and **Redis** to guarantee true infrastructure readiness.
+- **Internationalization (i18n)**: Translation support using localized JSON files and smart `Accept-Language` detection.
 
 ## 📂 Project Structure
 
@@ -118,5 +124,7 @@ npm run test:e2e
   - [http://localhost:3000/api](http://localhost:3000/api)
 - **BullBoard Dashboard**: Monitor background jobs and queues at `/admin/queues`.
   - [http://localhost:3000/admin/queues](http://localhost:3000/admin/queues)
+- **Health Checks**: Verify Database and Redis status at `/health`.
+  - [http://localhost:3000/health](http://localhost:3000/health)
 - **API Prefix**: All functional routes are prefixed with `/api` by default.
 - **Locales**: Translation files are located in `./locales`.

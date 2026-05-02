@@ -2,15 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  getHealth() {
-    return { message: 'OK' };
-  }
-
-  async getHealthDetails() {
-    return {
-      status: 'UP',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    };
+  getHello(): string {
+    return 'Social Media API is running! Access /api for Swagger documentation.';
   }
 }

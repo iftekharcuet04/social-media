@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ConnectionPlatform } from '@prisma/client';
 import { FeedIngestionService } from '../ingestion/feed-ingestion.service';
 import { InstagramGraphApiClient } from './instagram-graph.api';
@@ -8,8 +9,8 @@ export class InstagramFeedService {
   private readonly logger = new Logger(InstagramFeedService.name);
 
   constructor(
-    private readonly feedIngestionService: FeedIngestionService,
     private readonly instagramGraphApiClient: InstagramGraphApiClient,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -49,7 +50,8 @@ export class InstagramFeedService {
       };
     };
 
-    await this.feedIngestionService.ingestFeeds(
+    const feedIngestionService = this.moduleRef.get(FeedIngestionService, { strict: false });
+    await feedIngestionService.ingestFeeds(
       ConnectionPlatform.INSTAGRAM,
       connectionId,
       userId,

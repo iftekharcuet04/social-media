@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { getQueueToken } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import {
   CreatePostParams,
   DeletePostParams,
@@ -8,8 +11,6 @@ import {
 import { PlatformCapabilitiesService } from '../../common/platform-capabilities.service';
 import { ConnectionService } from '../connection/connection.service';
 import { ConnectionRepository } from '../../repositories/connection.repository';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PUBLISH_POST_QUEUE } from '../../common/queue.constant';
 
 @Injectable()
@@ -18,14 +19,15 @@ export class PublisherService {
     @Inject('POST_STRATEGIES')
     private readonly strategies: PublisherStrategy[],
     private readonly platformCapabilitiesService: PlatformCapabilitiesService,
-    private readonly connectionService: ConnectionService,
     private readonly connectionRepository: ConnectionRepository,
-    @InjectQueue(PUBLISH_POST_QUEUE)
-    private readonly publishQueue: Queue,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async publish(params: CreatePostParams): Promise<PostResult> {
-    const job = await this.publishQueue.add('publish-job', params, {
+    const queue = this.moduleRef.get<Queue>(getQueueToken(PUBLISH_POST_QUEUE), {
+      strict: false,
+    });
+    const job = await queue.add('publish-job', params, {
       attempts: 3,
       backoff: {
         type: 'exponential',
@@ -35,7 +37,7 @@ export class PublisherService {
       removeOnFail: false,
     });
 
-    return { id: job.id as string, error: null };
+    return { id: job.id, error: null };
   }
 
   async executePublish(params: CreatePostParams): Promise<PostResult> {
@@ -68,7 +70,8 @@ export class PublisherService {
         });
 
         if (connection) {
-          await this.connectionService.refreshToken(connection.id);
+          const connectionService = this.moduleRef.get(ConnectionService, { strict: false });
+          await connectionService.refreshToken(connection.id);
           // Retry the post with the new token (handled inside the strategy which re-fetches connection)
           return await strategy.createPost(params);
         }

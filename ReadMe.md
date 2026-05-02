@@ -92,6 +92,17 @@ npm run build
 npm run start
 ```
 
+### 🐳 Docker Support
+The project includes full Docker support for the API, PostgreSQL, and Redis.
+```bash
+# Start all services
+docker-compose up --build
+```
+- **API**: [http://localhost:3001](http://localhost:3001) (mapped from internal 3000)
+- **Database**: Port `5433` on host
+- **Redis**: Port `6380` on host (to avoid local conflicts)
+- **Adminer (DB UI)**: [http://localhost:1080](http://localhost:1080)
+
 ## 🧪 Testing
 ```bash
 # Run unit tests
@@ -101,6 +112,11 @@ npm run test
 npm run test:e2e
 ```
 
-## 📖 Documentation
-- **API Prefix**: All routes are prefixed with `/api` by default.
+## 📖 Documentation & Monitoring
+
+- **Swagger API Docs**: Interactive API documentation is available at `/api`.
+  - [http://localhost:3000/api](http://localhost:3000/api)
+- **BullBoard Dashboard**: Monitor background jobs and queues at `/admin/queues`.
+  - [http://localhost:3000/admin/queues](http://localhost:3000/admin/queues)
+- **API Prefix**: All functional routes are prefixed with `/api` by default.
 - **Locales**: Translation files are located in `./locales`.

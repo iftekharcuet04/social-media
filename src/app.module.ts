@@ -3,7 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from 'nestjs-prisma';
 import { PrismaOverrideModule } from './prisma/prisma.module';
 import { RepositoryModule } from './repositories/repository.module';
@@ -35,11 +35,14 @@ import apiConfig from './config/api.config';
     AuthModule,
     ConnectionModule,
     ScheduleModule.forRoot(),
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      },
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('REDIS_HOST') || '127.0.0.1',
+          port: parseInt(configService.get('REDIS_PORT') || '6379', 10),
+        },
+      }),
     }),
     BullBoardModule.forRoot({
       route: '/admin/queues',

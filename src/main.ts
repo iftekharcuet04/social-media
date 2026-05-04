@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import 'reflect-metadata';
 import { AppModule } from './app.module';
+import { SocialMediaExceptionFilter } from './common/filters/social-media-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -21,6 +22,7 @@ async function bootstrap() {
         transform: true,
       }),
     );
+    app.useGlobalFilters(new SocialMediaExceptionFilter());
 
     const config = new DocumentBuilder()
       .setTitle('Social Media API')

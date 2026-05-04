@@ -62,12 +62,7 @@ export class InstagramStrategy implements PublisherStrategy {
 
       return { id: mediaInfo, error: null };
     } catch (error: any) {
-      const formattedError = error?.response?.data?.error?.message
-        ? new Error(`Instagram API Error: ${error.response.data.error.message}`)
-        : error instanceof Error
-          ? error
-          : new Error(String(error));
-      return { id: null, error: formattedError };
+      return { id: null, error };
     }
   }
 

@@ -77,12 +77,7 @@ export class FacebookStrategy implements PublisherStrategy {
       );
       return { id: response.id, error: null };
     } catch (error: any) {
-      const formattedError = error?.response?.data?.error?.message
-        ? new Error(`Facebook API Error: ${error.response.data.error.message}`)
-        : error instanceof Error
-          ? error
-          : new Error(String(error));
-      return { id: null, error: formattedError };
+      return { id: null, error };
     }
   }
 

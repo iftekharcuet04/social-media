@@ -1,6 +1,8 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { lastValueFrom } from 'rxjs';
+import { SocialMediaErrorParser } from '../../common/exceptions/error-parser.util';
 import {
   INSTAGRAM_API_BASE_URL,
   INSTAGRAM_AUTH_BASE_URL,
@@ -34,42 +36,43 @@ export class InstagramGraphApiClient {
   }) {
     const { clientId, clientSecret, redirectUri, code } = params;
 
-    const response = await this.httpService
-      .post(
-        `${INSTAGRAM_API_BASE_URL}/oauth/access_token`,
-        new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri,
-          code,
-        }).toString(),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
-      )
-      .toPromise();
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      const response = await lastValueFrom(
+        this.httpService.post(
+          `${INSTAGRAM_API_BASE_URL}/oauth/access_token`,
+          new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+            code,
+          }).toString(),
+          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+        ),
+      );
 
-    return response?.data || {};
+      return response?.data || {};
+    });
   }
 
   // short-lived -> long-lived token
   async getLongLivedToken(params: { shortLivedToken: string; clientSecret: string }) {
     const { shortLivedToken, clientSecret } = params;
-
     const url = `${INSTAGRAM_GRAPH_BASE_URL}/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
 
-    const response = await this.httpService.get(url).toPromise();
-    return response?.data || {};
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      const response = await lastValueFrom(this.httpService.get(url));
+      return response?.data || {};
+    });
   }
 
   async getUserInfo(accessToken: string) {
     const userInfoUrl = `${INSTAGRAM_GRAPH_BASE_URL}/${INSTAGRAM_VERSION}/me?fields=user_id,name,username&access_token=${accessToken}`;
-    console.log('userInfoUrl;: ', userInfoUrl);
-
-    const userDataResponse = await this.httpService.get(userInfoUrl).toPromise();
-    console.log('userDataResponse: ', userDataResponse?.data);
-
-    const { name, username, email, user_id } = userDataResponse?.data || {};
-    return { name, email: email || username, username, user_id };
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      const userDataResponse = await lastValueFrom(this.httpService.get(userInfoUrl));
+      const { name, username, email, user_id } = userDataResponse?.data || {};
+      return { name, email: email || username, username, user_id };
+    });
   }
 
   async getUserMedia(userId: string, accessToken: string, cursor?: string) {
@@ -82,8 +85,10 @@ export class InstagramGraphApiClient {
       params.after = cursor;
     }
 
-    const { data } = await axios.get(url, { params });
-    return data;
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      const { data } = await axios.get(url, { params });
+      return data;
+    });
   }
 
   // social post api
@@ -95,18 +100,20 @@ export class InstagramGraphApiClient {
     mediaType?: string;
     url?: string;
   }) {
-    return axios.post(
-      `${params.apiUrl}/media`,
-      {},
-      {
-        params: {
-          caption: params.caption,
-          image_url: params.url,
-          media_type: params.mediaType, // reels, stories
-          access_token: params.accessToken,
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      return axios.post(
+        `${params.apiUrl}/media`,
+        {},
+        {
+          params: {
+            caption: params.caption,
+            image_url: params.url,
+            media_type: params.mediaType, // reels, stories
+            access_token: params.accessToken,
+          },
         },
-      },
-    );
+      );
+    });
   }
 
   async createVideoMediaContainer(params: {
@@ -116,50 +123,58 @@ export class InstagramGraphApiClient {
     mediaType?: string;
     url?: string;
   }) {
-    return axios.post(
-      `${params.apiUrl}/media`,
-      {},
-      {
-        params: {
-          caption: params.caption,
-          video_url: params.url,
-          media_type: params.mediaType, // reels, stories
-          access_token: params.accessToken,
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      return axios.post(
+        `${params.apiUrl}/media`,
+        {},
+        {
+          params: {
+            caption: params.caption,
+            video_url: params.url,
+            media_type: params.mediaType, // reels, stories
+            access_token: params.accessToken,
+          },
         },
-      },
-    );
+      );
+    });
   }
 
   async publishMedia(apiUrl: string, creationId: string, accessToken: string) {
-    return axios.post(
-      `${apiUrl}/media_publish`,
-      {},
-      {
-        params: {
-          creation_id: creationId,
-          access_token: accessToken,
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      return axios.post(
+        `${apiUrl}/media_publish`,
+        {},
+        {
+          params: {
+            creation_id: creationId,
+            access_token: accessToken,
+          },
         },
-      },
-    );
+      );
+    });
   }
 
   async getMediaDetails(apiUrl: string, mediaId: string, accessToken: string) {
-    const response = await axios.get(`${apiUrl}/${mediaId}`, {
-      params: {
-        fields: 'id,permalink',
-        access_token: accessToken,
-      },
-    });
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      const response = await axios.get(`${apiUrl}/${mediaId}`, {
+        params: {
+          fields: 'id,permalink',
+          access_token: accessToken,
+        },
+      });
 
-    const { id, permalink } = response?.data || {};
-    return `${id}|${permalink}`;
+      const { id, permalink } = response?.data || {};
+      return `${id}|${permalink}`;
+    });
   }
 
   async deleteMedia(apiUrl: string, mediaId: string, accessToken: string) {
-    return axios.delete(`${apiUrl}/${mediaId}`, {
-      params: {
-        access_token: accessToken,
-      },
+    return SocialMediaErrorParser.wrap('INSTAGRAM', async () => {
+      return axios.delete(`${apiUrl}/${mediaId}`, {
+        params: {
+          access_token: accessToken,
+        },
+      });
     });
   }
 }

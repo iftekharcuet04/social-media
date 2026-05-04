@@ -1,27 +1,22 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import { ConnectionAuthStrategy, AuthCallbackParams } from '../interfaces/auth-strategy';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { AUTH_STRATEGIES, ConnectionAuthStrategy, AuthCallbackParams } from '../interfaces/auth-strategy';
+import { ITokenRefresher } from '../interfaces/token-refresher.interface';
 import { ConnectionRepository } from '../../repositories/connection.repository';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class ConnectionService {
+export class ConnectionService implements ITokenRefresher {
   constructor(
     private readonly connectionRepository: ConnectionRepository,
     private readonly jwtService: JwtService,
-    private readonly moduleRef: ModuleRef,
+    @Inject(AUTH_STRATEGIES)
+    private readonly strategies: ConnectionAuthStrategy[],
   ) {}
 
-  private async getStrategy(platform: string): Promise<ConnectionAuthStrategy> {
-    const { FacebookAuthService } = await import('../facebook/facebook.auth.service');
-    const { InstagramAuthService } = await import('../instagram/instagram.auth.service');
-
-    const strategies: ConnectionAuthStrategy[] = [
-      this.moduleRef.get(FacebookAuthService, { strict: false }),
-      this.moduleRef.get(InstagramAuthService, { strict: false }),
-    ];
-
-    const strategy = strategies.find((s) => s.platform.toUpperCase() === platform.toUpperCase());
+  private getStrategy(platform: string): ConnectionAuthStrategy {
+    const strategy = this.strategies.find(
+      (s) => s.platform.toUpperCase() === platform.toUpperCase(),
+    );
     if (!strategy) {
       throw new NotFoundException(`Platform ${platform} not supported for authentication`);
     }
@@ -29,7 +24,7 @@ export class ConnectionService {
   }
 
   async getConnectUrl(platform: string, userId: string, redirectUri?: string): Promise<string> {
-    const strategy = await this.getStrategy(platform);
+    const strategy = this.getStrategy(platform);
 
     // Task 5: Sign the state for CSRF protection
     const signedState = this.jwtService.sign({ userId, platform }, { expiresIn: '15m' });
@@ -48,7 +43,7 @@ export class ConnectionService {
       throw new UnauthorizedException('Invalid or expired OAuth state');
     }
 
-    const strategy = await this.getStrategy(platform);
+    const strategy = this.getStrategy(platform);
     await strategy.handleCallback(params);
 
     // Task 7: Trigger background Feed Sync after connection (don't await)
@@ -66,7 +61,7 @@ export class ConnectionService {
       throw new NotFoundException('Connection not found');
     }
 
-    const strategy = await this.getStrategy(connection.platform);
+    const strategy = this.getStrategy(connection.platform);
     await strategy.refreshToken(connectionId);
   }
 

@@ -6,6 +6,9 @@ COPY . .
 
 RUN npm install
 
+# ... after npm install
+RUN npm install -g ts-node-dev
+
 
 RUN npm run build
 
@@ -20,4 +23,6 @@ RUN npm run build
 # RUN npm install --omit=dev
 
 EXPOSE 3000
-CMD ["npm", "start"]
+# Generate Prisma client and start in dev mode
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]
+

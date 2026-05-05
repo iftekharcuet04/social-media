@@ -10,6 +10,7 @@ services:
       - "3005:3000"
     volumes:
       - .:/app
+      - /app/node_modules  # <--- THIS PREVENTS THE HANG
     environment:
       - PORT=3000
       - DATABASE_URL=postgresql://social:social@postgres:5432/social?connection_limit=20&pool_timeout=30

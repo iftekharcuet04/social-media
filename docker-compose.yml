@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: social-api
     ports:
-      - "3001:3000"
+      - "3005:3000"
     volumes:
       - .:/app
     environment:

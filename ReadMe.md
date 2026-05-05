@@ -173,7 +173,7 @@ docker-compose up --build
 
 | Service | URL |
 |---|---|
-| API | http://localhost:3001 |
+| API | http://localhost:3005 |
 | Adminer (DB UI) | http://localhost:1080 |
 | Redis | localhost:6380 |
 | Database | localhost:5433 |
@@ -196,8 +196,8 @@ npm run test:e2e
 
 | Endpoint | Description |
 |---|---|
-| `/api` | Swagger interactive API documentation |
-| `/admin/queues` | BullBoard — monitor background jobs |
+| `/api` | [Swagger] http://localhost:3005/api |
+| `/queues` | [BullBoard] http://localhost:3005/queues |
 | `/health` | Health check (PostgreSQL + Redis) |
 
 ---

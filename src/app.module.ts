@@ -54,7 +54,7 @@ import { RepositoryModule } from './repositories/repository.module';
       },
     }),
     BullBoardModule.forRoot({
-      route: '/admin/queues',
+      route: '/queues',
       adapter: ExpressAdapter,
     }),
     QueueModule,
@@ -92,7 +92,7 @@ export class AppModule implements OnModuleInit {
     if (dbUrl && !dbUrl.includes('connection_limit=')) {
       this.logger.warn(
         "DATABASE_URL does not contain 'connection_limit'. " +
-          "Add '?connection_limit=20' to prevent connection exhaustion.",
+        "Add '?connection_limit=20' to prevent connection exhaustion.",
       );
     }
   }

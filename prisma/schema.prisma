@@ -18,6 +18,7 @@ enum ConnectionType {
   PROFILE
   PAGE
   BUSINESS
+  GROUP
 }
 
 enum ConnectionStatus {

@@ -13,7 +13,6 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const logger = new NestLogger('Bootstrap');
-
   try {
     app.useGlobalPipes(
       new ValidationPipe({
@@ -36,9 +35,9 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     await app.listen(port, '0.0.0.0');
     logger.log(`Server running on port ${port}`);
-    logger.log(`Swagger: http://localhost:port/api`);
-    logger.log(`BullBoard: http://localhost:port/queues`);
-    logger.log(`Health: http://localhost:port/health`);
+    logger.log(`Swagger: http://localhost:${port}/api`);
+    logger.log(`BullBoard: http://localhost:${port}/queues`);
+    logger.log(`Health: http://localhost:${port}/health`);
   } catch (error) {
     logger.error('Error during bootstrap', error);
     process.exit(1);

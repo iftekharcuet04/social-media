@@ -11,7 +11,7 @@ export class SocialMediaErrorParser {
    */
   static parse(platform: string, error: any): never {
     const status = error?.response?.status || error?.status;
-    
+
     // Extract message cleanly, catering to deeply nested platform-specific error structures
     let message = error?.message || 'Unknown Social Media API Error';
     if (error?.response?.data) {
@@ -39,7 +39,7 @@ export class SocialMediaErrorParser {
 
     // 2. Check for Rate Limiting Errors
     const isRateLimit = status === HttpStatus.TOO_MANY_REQUESTS;
-    
+
     if (isRateLimit) {
       throw new SocialMediaRateLimitException(platform, message, error);
     }
@@ -47,9 +47,10 @@ export class SocialMediaErrorParser {
     // 3. General API Errors
     // Network errors (ECONNRESET, ETIMEDOUT) or 5xx server errors are usually retryable
     const code = error?.code;
-    const isNetworkError = code && ['ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNREFUSED'].includes(code);
+    const isNetworkError =
+      code && ['ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNREFUSED'].includes(code);
     const isServerError = status >= 500 && status <= 599;
-    
+
     const isRetryable = isNetworkError || isServerError;
     const finalStatus = status || HttpStatus.INTERNAL_SERVER_ERROR;
 

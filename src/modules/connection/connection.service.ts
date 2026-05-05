@@ -1,5 +1,9 @@
 import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { AUTH_STRATEGIES, ConnectionAuthStrategy, AuthCallbackParams } from '../interfaces/auth-strategy';
+import {
+  AUTH_STRATEGIES,
+  ConnectionAuthStrategy,
+  AuthCallbackParams,
+} from '../interfaces/auth-strategy';
 import { ITokenRefresher } from '../interfaces/token-refresher.interface';
 import { ConnectionRepository } from '../../repositories/connection.repository';
 import { JwtService } from '@nestjs/jwt';

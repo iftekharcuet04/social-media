@@ -3,7 +3,10 @@ import { ConcurrencyLimiterService } from '../../common/services/concurrency-lim
 import { PostRepository } from '../../repositories/post.repository';
 import { ConnectionPlatform, Prisma } from '@prisma/client';
 import { ITokenRefresher, TOKEN_REFRESHER } from '../interfaces/token-refresher.interface';
-import { SocialMediaAuthException, SocialMediaException } from '../../common/exceptions/social-media.exception';
+import {
+  SocialMediaAuthException,
+  SocialMediaException,
+} from '../../common/exceptions/social-media.exception';
 
 export interface FeedFetchResult {
   data: Prisma.SocialPostCreateInput[];
@@ -132,7 +135,6 @@ export class FeedIngestionService {
     }
   }
 
-
   private async handleUnauthorizedAndRetry(
     platform: ConnectionPlatform,
     connectionId: string,
@@ -167,5 +169,4 @@ export class FeedIngestionService {
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
-
 }

@@ -34,7 +34,13 @@ export class SocialMediaRateLimitException extends SocialMediaException {
 }
 
 export class SocialMediaApiException extends SocialMediaException {
-  constructor(platform: string, message: string, isRetryable: boolean, status: HttpStatus, originalError?: any) {
+  constructor(
+    platform: string,
+    message: string,
+    isRetryable: boolean,
+    status: HttpStatus,
+    originalError?: any,
+  ) {
     super(platform, message, isRetryable, status, originalError);
   }
 }

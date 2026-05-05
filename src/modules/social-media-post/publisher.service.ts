@@ -82,7 +82,6 @@ export class PublisherService {
     return result;
   }
 
-
   async unpublish(params: DeletePostParams): Promise<PostResult> {
     this.platformCapabilitiesService.checkCapability(params.platform, 'canDelete');
 

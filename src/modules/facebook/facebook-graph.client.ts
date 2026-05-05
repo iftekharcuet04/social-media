@@ -7,6 +7,7 @@ import {
   FACEBOOK_GRAPH_BASE_URL,
   FACEBOOK_VERSION,
 } from '../../common/api.constant';
+import { SocialMediaErrorParser } from '../../common/exceptions/error-parser.util';
 
 @Injectable()
 export class FacebookGraphClient {
@@ -33,39 +34,40 @@ export class FacebookGraphClient {
     code: string;
   }) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/oauth/access_token`;
-
-    const { data } = await lastValueFrom(this.http.get(url, { params }));
-
-    return data;
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(this.http.get(url, { params }));
+      return data;
+    });
   }
 
   async getUserProfile(accessToken: string) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/me`;
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(
+        this.http.get(url, {
+          params: {
+            fields: 'id,name,email,picture',
+            access_token: accessToken,
+          },
+        }),
+      );
 
-    const { data } = await lastValueFrom(
-      this.http.get(url, {
-        params: {
-          fields: 'id,name,email,picture',
-          access_token: accessToken,
-        },
-      }),
-    );
-
-    return {
-      id: data.id,
-      email: data.email ?? data.name,
-      profileImage: data.picture?.data?.url,
-    };
+      return {
+        id: data.id,
+        email: data.email ?? data.name,
+        profileImage: data.picture?.data?.url,
+      };
+    });
   }
 
   async getUserPages(accessToken: string) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/me/accounts`;
-
-    const { data } = await lastValueFrom(
-      this.http.get(url, { params: { access_token: accessToken } }),
-    );
-
-    return data?.data ?? [];
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(
+        this.http.get(url, { params: { access_token: accessToken } }),
+      );
+      return data?.data ?? [];
+    });
   }
 
   async refreshAccessToken(
@@ -73,29 +75,29 @@ export class FacebookGraphClient {
     accessToken: string,
   ) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/oauth/access_token`;
-
-    const { data } = await lastValueFrom(
-      this.http.get(url, {
-        params: {
-          grant_type: 'fb_exchange_token',
-          client_id: auth.facebook_client_id,
-          client_secret: auth.facebook_client_secret,
-          fb_exchange_token: accessToken,
-        },
-      }),
-    );
-
-    return data;
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(
+        this.http.get(url, {
+          params: {
+            grant_type: 'fb_exchange_token',
+            client_id: auth.facebook_client_id,
+            client_secret: auth.facebook_client_secret,
+            fb_exchange_token: accessToken,
+          },
+        }),
+      );
+      return data;
+    });
   }
 
   async deletePost(postId: string, accessToken: string) {
     const url = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${postId}`;
-
-    const { data } = await lastValueFrom(
-      this.http.delete(url, { params: { access_token: accessToken } }),
-    );
-
-    return data;
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(
+        this.http.delete(url, { params: { access_token: accessToken } }),
+      );
+      return data;
+    });
   }
 
   async getPageFeed(pageId: string, accessToken: string, cursor?: string) {
@@ -107,56 +109,63 @@ export class FacebookGraphClient {
     if (cursor) {
       params.after = cursor;
     }
-
-    const { data } = await lastValueFrom(this.http.get(url, { params }));
-    return data;
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const { data } = await lastValueFrom(this.http.get(url, { params }));
+      return data;
+    });
   }
 
   // for post service
 
   async uploadImage(pageId: string, accessToken: string, message: string, url: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/photos`;
-    const response = await axios.post(
-      apiUrl,
-      {},
-      {
-        params: {
-          message,
-          published: true,
-          access_token: accessToken,
-          url: url,
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const response = await axios.post(
+        apiUrl,
+        {},
+        {
+          params: {
+            message,
+            published: true,
+            access_token: accessToken,
+            url: url,
+          },
         },
-      },
-    );
-    return { id: response.data.id, error: null };
+      );
+      return { id: response.data.id, error: null };
+    });
   }
 
   async uploadText(pageId: string, accessToken: string, message: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/feed`;
-    const response = await axios.post(
-      apiUrl,
-      {},
-      {
-        params: { message, published: true, access_token: accessToken },
-      },
-    );
-    return { id: response.data.id, error: null };
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const response = await axios.post(
+        apiUrl,
+        {},
+        {
+          params: { message, published: true, access_token: accessToken },
+        },
+      );
+      return { id: response.data.id, error: null };
+    });
   }
 
   async uploadVideo(pageId: string, accessToken: string, message: string, url: string) {
     const apiUrl = `${FACEBOOK_GRAPH_BASE_URL}/${FACEBOOK_VERSION}/${pageId}/videos`;
-    const response = await axios.post(
-      apiUrl,
-      {},
-      {
-        params: {
-          description: message,
-          published: true,
-          access_token: accessToken,
-          file_url: url,
+    return SocialMediaErrorParser.wrap('FACEBOOK', async () => {
+      const response = await axios.post(
+        apiUrl,
+        {},
+        {
+          params: {
+            description: message,
+            published: true,
+            access_token: accessToken,
+            file_url: url,
+          },
         },
-      },
-    );
-    return { id: response.data.id || response.data.video_id, error: null };
+      );
+      return { id: response.data.id || response.data.video_id, error: null };
+    });
   }
 }

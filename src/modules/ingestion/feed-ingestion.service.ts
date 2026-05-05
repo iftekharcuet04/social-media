@@ -1,9 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConcurrencyLimiterService } from '../../common/services/concurrency-limiter.service';
 import { PostRepository } from '../../repositories/post.repository';
 import { ConnectionPlatform, Prisma } from '@prisma/client';
-import { ConnectionService } from '../connection/connection.service';
+import { ITokenRefresher, TOKEN_REFRESHER } from '../interfaces/token-refresher.interface';
+import {
+  SocialMediaAuthException,
+  SocialMediaException,
+} from '../../common/exceptions/social-media.exception';
 
 export interface FeedFetchResult {
   data: Prisma.SocialPostCreateInput[];
@@ -17,7 +20,8 @@ export class FeedIngestionService {
   constructor(
     private readonly postRepository: PostRepository,
     private readonly concurrencyLimiter: ConcurrencyLimiterService,
-    private readonly moduleRef: ModuleRef,
+    @Inject(TOKEN_REFRESHER)
+    private readonly tokenRefresher: ITokenRefresher,
   ) {}
 
   /**
@@ -101,12 +105,15 @@ export class FeedIngestionService {
           0,
         ); // Reset retryCount
       }
-    } catch (error) {
+    } catch (error: any) {
       const MAX_RETRIES = 5;
 
-      if (this.isRetryableError(error) && retryCount < MAX_RETRIES) {
+      const isRetryable = error instanceof SocialMediaException ? error.isRetryable : false;
+      const isUnauthorized = error instanceof SocialMediaAuthException;
+
+      if (isRetryable && retryCount < MAX_RETRIES) {
         this.logger.warn(
-          `Retryable error encountered during fetch for connection ${connectionId}: ${(error as any).message}`,
+          `Retryable error encountered during fetch for connection ${connectionId}: ${error.message}`,
         );
         await this.fetchAndIngestRecursive(
           platform,
@@ -116,27 +123,16 @@ export class FeedIngestionService {
           cursor,
           retryCount + 1,
         );
-      } else if (this.isUnauthorizedError(error)) {
+      } else if (isUnauthorized) {
         await this.handleUnauthorizedAndRetry(platform, connectionId, userId, fetchPageFn, cursor);
       } else {
         this.logger.error(
-          `Failed to ingest feeds for connection ${connectionId} after ${retryCount} retries. Error: ${(error as any).message}`,
-          (error as any).stack,
+          `Failed to ingest feeds for connection ${connectionId} after ${retryCount} retries. Error: ${error.message}`,
+          error.stack,
         );
         throw error;
       }
     }
-  }
-
-  private isUnauthorizedError(error: any): boolean {
-    const status = error.response?.status || error.status;
-    const message = error.message?.toLowerCase() || '';
-    return (
-      status === 401 ||
-      message.includes('unauthorized') ||
-      message.includes('expired') ||
-      message.includes('invalid token')
-    );
   }
 
   private async handleUnauthorizedAndRetry(
@@ -151,9 +147,7 @@ export class FeedIngestionService {
     );
 
     try {
-      // Lazily resolve ConnectionService to break circular dependency
-      const connectionService = this.moduleRef.get(ConnectionService, { strict: false });
-      await connectionService.refreshToken(BigInt(connectionId));
+      await this.tokenRefresher.refreshToken(BigInt(connectionId));
 
       // Retry the fetch and ingest recursively
       return await this.fetchAndIngestRecursive(
@@ -174,25 +168,5 @@ export class FeedIngestionService {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private isRetryableError(error: any): boolean {
-    // Basic logic to determine if an error is retryable (e.g., HTTP 429, 5xx)
-    // Works with AxiosError structure or standard HTTP status codes
-    const status = error.response?.status || error.status;
-
-    if (status) {
-      return status === 429 || (status >= 500 && status <= 599);
-    }
-
-    // Network errors like ECONNRESET, ENOTFOUND, ETIMEDOUT are generally retryable
-    const code = error.code;
-    if (code && ['ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNREFUSED'].includes(code)) {
-      return true;
-    }
-
-    // Default to true for safety in this basic implementation,
-    // ideally refine based on specific third-party API error responses
-    return true;
   }
 }

@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import 'reflect-metadata';
 import { AppModule } from './app.module';
+import { SocialMediaExceptionFilter } from './common/filters/social-media-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -21,6 +22,7 @@ async function bootstrap() {
         transform: true,
       }),
     );
+    app.useGlobalFilters(new SocialMediaExceptionFilter());
 
     const config = new DocumentBuilder()
       .setTitle('Social Media API')
@@ -34,9 +36,9 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     await app.listen(port, '0.0.0.0');
     logger.log(`Server running on port ${port}`);
-    logger.log(`Swagger: http://localhost:3001/api`);
-    logger.log(`BullBoard: http://localhost:3001/admin/queues`);
-    logger.log(`Health: http://localhost:3001/health`);
+    logger.log(`Swagger: http://localhost:port/api`);
+    logger.log(`BullBoard: http://localhost:port/queues`);
+    logger.log(`Health: http://localhost:port/health`);
   } catch (error) {
     logger.error('Error during bootstrap', error);
     process.exit(1);

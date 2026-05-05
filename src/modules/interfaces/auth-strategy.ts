@@ -1,3 +1,5 @@
+export const AUTH_STRATEGIES = Symbol('AUTH_STRATEGIES');
+
 export interface AuthCallbackParams {
   userId: string;
   code: string;

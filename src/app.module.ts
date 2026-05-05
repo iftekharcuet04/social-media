@@ -54,7 +54,7 @@ import { RepositoryModule } from './repositories/repository.module';
       },
     }),
     BullBoardModule.forRoot({
-      route: '/admin/queues',
+      route: '/queues',
       adapter: ExpressAdapter,
     }),
     QueueModule,

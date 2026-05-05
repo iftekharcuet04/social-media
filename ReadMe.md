@@ -1,6 +1,8 @@
 # Social Media Management System
 
-A professional social media management backend built with NestJS and Prisma, designed to handle multi-platform connections, media publishing, and automated interactions with high performance and reliability.
+A professional social media management backend built with NestJS and Prisma, designed to handle multi-platform connections, media publishing, and automated feed ingestion with production-grade reliability.
+
+---
 
 ## 🚀 Core Features
 
@@ -9,33 +11,93 @@ A professional social media management backend built with NestJS and Prisma, des
 - **Automated Feed Ingestion**: High-throughput ingestion of social feeds using recursive retry, exponential backoff, and DB concurrency management.
 - **Centralized Connection Management**: A unified gateway to manage OAuth lifecycles, access tokens, and long-lived session refreshing.
 
-## 🏗️ Technical Foundation (Engineering Standards)
+---
 
-This project follows premium engineering standards to ensure production-grade reliability:
+## 🏗️ Architecture
 
-### 1. Advanced Architecture & Dependency Management
-- **Dynamic Resolution**: Heavy reliance on `ModuleRef` for lazy, runtime dependency resolution to prevent circular dependencies and deadlocks between modules (e.g., Connection, Ingestion, Publisher).
-- **Asynchronous Processing**: High-latency tasks like publishing social media posts are offloaded to **BullMQ** (Redis) background queues, ensuring the API remains fast and responsive.
+The application follows **Pure Constructor Injection (Pure DI)** — no `ModuleRef` lazy-lookups, no `forwardRef`, no circular dependencies. Services communicate through shared interfaces and injection tokens.
 
-### 2. OAuth Strategy Pattern
-The system uses a pluggable strategy architecture for social platforms. Each provider (Facebook, Instagram, etc.) implements a standard `ConnectionAuthStrategy`, encapsulating:
-- Platform-specific Login URLs.
-- Token exchange logic (short-lived to long-lived).
+### Final Dependency Graph (No Cycles)
+
+The module import chain is strictly linear — no module ever imports a module that depends on it.
+
+```mermaid
+flowchart TD
+    AppModule --> ConnectionModule
+    AppModule --> SocialMediaPostModule
+    SocialMediaPostModule --> ConnectionModule
+    ConnectionModule --> FacebookModule
+    ConnectionModule --> InstagramModule
+    ConnectionModule -- provides --> ITokenRefresher["ITokenRefresher (TOKEN_REFRESHER)"]
+    FacebookModule --> IngestionModule
+    InstagramModule --> IngestionModule
+    IngestionModule --> ITokenRefresher
+```
+
+> `IngestionModule` depends only on the `ITokenRefresher` interface, not on `ConnectionModule` directly.
+> This is the key that breaks the circular dependency chain.
+
+### Key Design Tokens
+
+| Token | Type | Usage |
+|---|---|---|
+| `TOKEN_REFRESHER` | `Symbol` | Abstracts `ConnectionService.refreshToken()` so `IngestionModule` has no dependency on `ConnectionModule` |
+| `AUTH_STRATEGIES` | `Symbol` | `ConnectionService` receives all platform auth strategies as an injected array — no dynamic imports |
+| `POST_STRATEGIES` | `string` | `PublisherService` receives all platform publish strategies as an injected array |
+
+### Module Responsibilities
+
+| Module | Responsibility |
+|---|---|
+| `ConnectionModule` | OAuth flow, token refresh, platform strategy orchestration — **composition root** |
+| `FacebookModule` | Facebook Graph API client, auth, feed sync |
+| `InstagramModule` | Instagram Graph API client, auth, feed sync |
+| `IngestionModule` | Platform-agnostic feed ingestion with retry/backoff |
+| `SocialMediaPostModule` | Post creation, scheduling, and BullMQ queue management |
+| `RepositoryModule` | Shared Prisma repository access |
+
+### Engineering Standards
+
+#### 1. Pure DI Architecture
+- **Zero circular dependencies**: All modules form a clean linear import chain.
+- **Interface-based decoupling**: High-level modules depend on abstractions (`ITokenRefresher`), not concrete services.
+- **Asynchronous Processing**: High-latency tasks like publishing posts are offloaded to **BullMQ** (Redis) background queues.
+
+#### 2. OAuth Strategy Pattern
+Each provider (Facebook, Instagram, etc.) implements a standard `ConnectionAuthStrategy`, encapsulating:
+- Platform-specific Login URL generation.
+- Token exchange logic (short-lived → long-lived).
 - Automated background refreshing of expired tokens.
 
-### 3. Multi-Tenant Security & Rate Limiting
+#### 3. Multi-Tenant Security & Rate Limiting
 - **Authentication**: All requests are protected by a `JwtAuthGuard` that injects the user context.
-- **Data Isolation**: Every database record (connections, posts, feeds) is cryptographically scoped to the `userId`, preventing any cross-tenant data leakage.
-- **Throttling**: A global `ThrottlerGuard` protects the API from brute-force and DDoS attacks (e.g., 10 requests per 60 seconds).
+- **Data Isolation**: Every database record is scoped to the `userId`, preventing cross-tenant leakage.
+- **Throttling**: A global `ThrottlerGuard` protects the API (10 requests per 60 seconds by default).
 
-### 4. Database & Concurrency
-- **Concurrency Limiting**: Integrated `ConcurrencyLimiterService` ensures the database is never overwhelmed by limiting active queries.
-- **Global Settings**: OAuth credentials (Client IDs/Secrets) are managed via the `PlatformSetting` model, allowing for global configuration updates without redeployment.
+#### 4. Database & Concurrency
+- **Concurrency Limiting**: `ConcurrencyLimiterService` prevents DB connection pool exhaustion.
+- **Global Settings**: OAuth credentials are managed via the `platform_settings` table — no redeployment needed for credential rotation.
 
-### 5. Observability & Monitoring
-- **Structured Logging**: Integrated `nestjs-pino` outputs high-performance, machine-readable JSON logs in production, while pretty-printing in development.
-- **Advanced Health Checks**: Built with `@nestjs/terminus`, the `/health` endpoint actively pings both **PostgreSQL** and **Redis** to guarantee true infrastructure readiness.
-- **Internationalization (i18n)**: Translation support using localized JSON files and smart `Accept-Language` detection.
+#### 5. Observability & Monitoring
+- **Structured Logging**: `nestjs-pino` outputs JSON logs in production, pretty-prints in development.
+- **Health Checks**: `/health` endpoint actively pings PostgreSQL and Redis.
+
+#### 6. Centralized Error Handling
+The system implements a unified error handling strategy for all third-party social APIs:
+- **Automatic Parsing**: `SocialMediaErrorParser` converts raw Axios/platform errors into strongly typed `SocialMediaException`s (Auth, Rate Limit, API).
+- **Global Filter**: `SocialMediaExceptionFilter` standardizes error responses for the frontend:
+    ```json
+    {
+      "statusCode": 401,
+      "platform": "FACEBOOK",
+      "message": "Session expired",
+      "isRetryable": false,
+      "timestamp": "ISO-TIMESTAMP"
+    }
+    ```
+- **Resilience**: Errors are tagged with `isRetryable`, allowing workers like `FeedIngestionService` to handle exponential backoff automatically based on domain logic instead of string matching.
+
+---
 
 ## 📂 Project Structure
 
@@ -44,25 +106,28 @@ src/
 ├── common/                     # Shared logic and cross-cutting concerns
 ├── modules/                    # Domain-specific logic
 │   ├── auth/                   # JWT Auth, Registration & Login
-│   ├── connection/             # Unified social account management
-│   ├── facebook/               # FB Strategy implementation
-│   ├── instagram/              # IG Strategy implementation
+│   ├── connection/             # Unified social account management (composition root)
+│   ├── facebook/               # Facebook Strategy implementation
+│   ├── instagram/              # Instagram Strategy implementation
 │   ├── ingestion/              # High-throughput automated feed ingestion
-│   ├── interfaces/             # Auth & Publisher Strategy definitions
+│   ├── interfaces/             # Auth & Publisher Strategy definitions + DI tokens
 │   └── social-media-post/      # Core post orchestration logic
 ├── prisma/                     # Database client & extensions
 └── repositories/               # Data access layer
-    ├── platform-setting.repository.ts # Global OAuth credentials
-    ├── user.repository.ts             # User data management
-    ├── connection.repository.ts       # Social account storage
-    └── post.repository.ts             # Social media post storage
+    ├── platform-setting.repository.ts
+    ├── user.repository.ts
+    ├── connection.repository.ts
+    └── post.repository.ts
 ```
+
+---
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
 - Node.js (v20+)
 - PostgreSQL
+- Redis
 
 ### Installation
 ```bash
@@ -77,54 +142,72 @@ npx prisma migrate dev --name init_multi_tenant_auth
 ```
 
 ### Environment Setup
-Create a `.env` file with the following variables:
+Create a `.env` file:
 ```env
 DATABASE_URL="postgresql://user:pass@localhost:5432/social_db?connection_limit=20"
 JWT_SECRET="your_super_secret_jwt_key"
 PORT=3000
+REDIS_HOST=localhost
+REDIS_PORT=6379
 DB_CONCURRENCY=20
 ```
 
 > [!IMPORTANT]
-> **Social Platform Credentials**: Facebook and Instagram `CLIENT_ID`, `CLIENT_SECRET`, and `REDIRECT_URI` are now stored in the `platform_settings` table in the database. You must seed these values after running migrations for the connection flow to work.
+> **Social Platform Credentials**: Facebook and Instagram `CLIENT_ID`, `CLIENT_SECRET`, and `REDIRECT_URI` are stored in the `platform_settings` table. You must seed these values after running migrations for the OAuth flow to work.
 
 ### Running the App
 ```bash
 # Development mode
-npm run dev
+npm run start:dev
 
-# Production mode
+# Production build
 npm run build
 npm run start
 ```
 
 ### 🐳 Docker Support
-The project includes full Docker support for the API, PostgreSQL, and Redis.
 ```bash
-# Start all services
+# Start all services (API, PostgreSQL, Redis, Adminer)
 docker-compose up --build
 ```
-- **API**: [http://localhost:3001](http://localhost:3001) (mapped from internal 3000)
-- **Database**: Port `5433` on host
-- **Redis**: Port `6380` on host (to avoid local conflicts)
-- **Adminer (DB UI)**: [http://localhost:1080](http://localhost:1080)
+
+| Service | URL |
+|---|---|
+| API | http://localhost:3005 |
+| Adminer (DB UI) | http://localhost:1080 |
+| Redis | localhost:6380 |
+| Database | localhost:5433 |
+
+---
 
 ## 🧪 Testing
+
 ```bash
-# Run unit tests
+# Unit tests
 npm run test
 
-# Run E2E verification
+# E2E tests
 npm run test:e2e
 ```
 
-## 📖 Documentation & Monitoring
+---
 
-- **Swagger API Docs**: Interactive API documentation is available at `/api`.
-  - [http://localhost:3000/api](http://localhost:3000/api)
-- **BullBoard Dashboard**: Monitor background jobs and queues at `/admin/queues`.
-  - [http://localhost:3000/admin/queues](http://localhost:3000/admin/queues)
-- **Health Checks**: Verify Database and Redis status at `/health`.
-  - [http://localhost:3000/health](http://localhost:3000/health)
-- **API Prefix**: All functional routes are prefixed with `/api` by default.
-- **Locales**: Translation files are located in `./locales`.
+## 📖 API & Monitoring
+
+| Endpoint | Description |
+|---|---|
+| `/api` | [Swagger] http://localhost:3005/api |
+| `/queues` | [BullBoard] http://localhost:3005/queues |
+| `/health` | Health check (PostgreSQL + Redis) |
+
+---
+
+## ➕ Adding a New Platform
+
+1. Create `src/modules/<platform>/<platform>.module.ts`
+2. Implement `ConnectionAuthStrategy` interface for OAuth
+3. Implement `PublisherStrategy` interface for posting
+4. Add the auth service to the `AUTH_STRATEGIES` factory in `ConnectionModule`
+5. Add the publisher strategy to the `POST_STRATEGIES` factory in `SocialMediaPostModule`
+
+No other files need to change.

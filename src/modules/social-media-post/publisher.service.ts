@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
@@ -9,9 +8,10 @@ import {
   PublisherStrategy,
 } from '../interfaces/media-factory';
 import { PlatformCapabilitiesService } from '../../common/platform-capabilities.service';
-import { ConnectionService } from '../connection/connection.service';
 import { ConnectionRepository } from '../../repositories/connection.repository';
 import { PUBLISH_POST_QUEUE } from '../../common/queue.constant';
+import { ITokenRefresher, TOKEN_REFRESHER } from '../interfaces/token-refresher.interface';
+import { SocialMediaAuthException } from '../../common/exceptions/social-media.exception';
 
 @Injectable()
 export class PublisherService {
@@ -20,14 +20,14 @@ export class PublisherService {
     private readonly strategies: PublisherStrategy[],
     private readonly platformCapabilitiesService: PlatformCapabilitiesService,
     private readonly connectionRepository: ConnectionRepository,
-    private readonly moduleRef: ModuleRef,
+    @Inject(TOKEN_REFRESHER)
+    private readonly tokenRefresher: ITokenRefresher,
+    @Inject(getQueueToken(PUBLISH_POST_QUEUE))
+    private readonly publishQueue: Queue,
   ) {}
 
   async publish(params: CreatePostParams): Promise<PostResult> {
-    const queue = this.moduleRef.get<Queue>(getQueueToken(PUBLISH_POST_QUEUE), {
-      strict: false,
-    });
-    const job = await queue.add('publish-job', params, {
+    const job = await this.publishQueue.add('publish-job', params, {
       attempts: 3,
       backoff: {
         type: 'exponential',
@@ -56,7 +56,7 @@ export class PublisherService {
     const result = await strategy.createPost(params);
 
     // Task: If unauthorized, try refreshing token and retrying once
-    if (result.error && this.isUnauthorizedError(result.error)) {
+    if (result.error && result.error instanceof SocialMediaAuthException) {
       try {
         console.warn(
           `Detected unauthorized error for ${params.platform}. Attempting token refresh and retry...`,
@@ -70,8 +70,7 @@ export class PublisherService {
         });
 
         if (connection) {
-          const connectionService = this.moduleRef.get(ConnectionService, { strict: false });
-          await connectionService.refreshToken(connection.id);
+          await this.tokenRefresher.refreshToken(connection.id);
           // Retry the post with the new token (handled inside the strategy which re-fetches connection)
           return await strategy.createPost(params);
         }
@@ -81,18 +80,6 @@ export class PublisherService {
     }
 
     return result;
-  }
-
-  private isUnauthorizedError(error: any): boolean {
-    const message = error.message?.toLowerCase() || '';
-    const responseStatus = error?.response?.status;
-
-    return (
-      responseStatus === 401 ||
-      message.includes('unauthorized') ||
-      message.includes('expired') ||
-      message.includes('invalid token')
-    );
   }
 
   async unpublish(params: DeletePostParams): Promise<PostResult> {
